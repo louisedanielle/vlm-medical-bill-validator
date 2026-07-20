@@ -914,7 +914,7 @@
         const apiKey = document.getElementById('apiKeyInput').value.trim();
         if (!apiKey) throw new Error('Please enter your Mistral API key');
         const base64Image = imageData.split(',')[1];
-        const resp = await fetch('http://localhost:3000/api/mistral', {
+        const resp = await fetch('https://api.mistral.ai/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
@@ -944,7 +944,7 @@
         const apiKey = document.getElementById('apiKeyInput').value.trim();
         if (!apiKey) throw new Error('Please enter your Mistral API key');
         const selectedModel = model || document.getElementById('modelSelect').value || 'mistral-small-latest';
-        const resp = await fetch('http://localhost:3000/api/mistral', {
+        const resp = await fetch('https://api.mistral.ai/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({ model: selectedModel, messages, temperature: 0.1, max_tokens: 4096, top_p: 0.95 })
