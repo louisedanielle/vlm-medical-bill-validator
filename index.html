@@ -916,7 +916,7 @@
         const base64Image = imageData.split(',')[1];
         const resp = await fetch('http://localhost:3000/api/mistral', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
                 model: 'pixtral-12b-2409',
                 messages: [{
@@ -946,7 +946,7 @@
         const selectedModel = model || document.getElementById('modelSelect').value || 'mistral-small-latest';
         const resp = await fetch('http://localhost:3000/api/mistral', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({ model: selectedModel, messages, temperature: 0.1, max_tokens: 4096, top_p: 0.95 })
         });
         if (!resp.ok) {
