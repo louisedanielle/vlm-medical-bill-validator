@@ -1632,7 +1632,7 @@ Question: ${question}`;
                 addChatMessage('ai', '✅ API key is valid!');
                 document.getElementById('mistralStatusText').textContent = '✅ Ready';
                 document.getElementById('mistralDot').className = 'dot ready';
-                localStorage.setItem('mistral_api_key', key);
+                // API key is NOT saved to localStorage
             } else {
                 addChatMessage('ai', `⚠️ Unexpected response: "${resp.substring(0,50)}..."`);
             }
@@ -1803,9 +1803,8 @@ Question: ${question}`;
     window.askQuestion = askQuestion; window.testApiKey = testApiKey; window.clearChat = clearChat;
     window.exportTXT = exportTXT; window.exportJSON = exportJSON; window.toggleJSONPreview = toggleJSONPreview;
 
-    // Load saved key
-    const saved = localStorage.getItem('mistral_api_key');
-    if (saved) { apiKeyInput.value = saved; document.getElementById('mistralStatusText').textContent = '✅ Key loaded'; document.getElementById('mistralDot').className = 'dot ready'; }
+    // No auto-loading of saved API key
+    // Users must enter their API key each session
 
     resetPipelineSteps(); checkReady();
     showToast('🏥 VLM OCR Bill Parser ready! Upload a bill & policy.');
