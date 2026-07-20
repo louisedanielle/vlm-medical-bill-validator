@@ -15,9 +15,9 @@ LeapStack AI Claims is a web-based application that uses Mistral AI's Vision Lan
 - **📊 Export Capabilities** - Export parsed data as TXT or JSON
 - **🔒 Privacy-First** - Your API key and documents stay in your browser (no server storage)
 
-## 🚀 Live Demo
+## 🚀 Demo
 
-[View Live Application](#) *https://vlm-medical-bill-validator-git-main-leapstack.vercel.app/*
+*https://vlm-medical-bill-validator-git-main-leapstack.vercel.app/*
 
 ## 📦 Installation
 
