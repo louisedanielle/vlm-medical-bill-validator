@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LeapStack AI Claims · VLM-Powered Medical Bill Validation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg-deep: #0a0f16;
+            --bg-panel: #10161f;
+            --bg-surface: #171f2e;
+            --bg-card: #1e2840;
+            --brand-teal: #2f898b;
+            --brand-teal-dark: #1f6a6c;
+            --brand-blue: #104276;
+            --brand-blue-light: #1a5a9e;
+            --border: #1a4a7a;
+            --border-light: #2a5a8a;
+            --accent: #2f898b;
+            --accent-glow: rgba(47, 137, 139, 0.3);
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.2);
+            --green: #22c55e;
+            --green-glow: rgba(34, 197, 94, 0.2);
+            --yellow: #eab308;
+            --yellow-glow: rgba(234, 179, 8, 0.2);
+            --text-primary: #e8ecf4;
+            --text-secondary: #8a9bb5;
+            --text-muted: #4a5f7a;
+            --mistral-purple: #6c5ce7;
+            --mistral-glow: rgba(108, 92, 231, 0.2);
+            --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --radius: 8px;
+            --radius-lg: 12px;
+        }
+        body { background: var(--bg-deep); color: var(--text-primary); font-family: var(--font-ui); min-height: 100vh; padding: 20px; }
+        .app { max-width: 1400px; margin: 0 auto; }
+        header {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--accent) 0%, #00f0c0 100%);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .logo-text { font-size: 18px; font-weight: 700; letter-spacing: 0.01em; }
+        .logo-text span { color: var(--accent); }
+        .header-sep { width: 1px; height: 28px; background: var(--border); }
+        .header-info { font-size: 12px; color: var(--text-muted); margin-left: auto; display: flex; align-items: center; gap: 12px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            background: var(--bg-surface);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        .panel-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .panel-badge {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .panel-badge.has-content { border-color: var(--accent); color: var(--accent); }
+        .panel-badge.hospital-detected { border-color: #2b6ed7; color: #2b6ed7; }
+        .panel-body {
+            padding: 16px;
+            flex: 1;
+            min-height: 200px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .panel-body::-webkit-scrollbar { width: 6px; }
+        .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        textarea {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--text-primary);
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea:focus { border-color: var(--accent); }
+        textarea::placeholder { color: var(--text-muted); }
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-deep);
+        }
+        .drop-zone:hover { border-color: var(--accent); background: rgba(0,212,170,0.04); }
+        .drop-zone.dragging { border-color: var(--accent); background: rgba(0,212,170,0.08); }
+        .drop-zone .icon { font-size: 32px; display: block; margin-bottom: 8px; }
+        .drop-zone .title { font-size: 13px; color: var(--text-secondary); }
+        .drop-zone .hint { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 20px;
+            border-radius: var(--radius);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            border: none;
+            transition: all 0.18s ease;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .btn-primary:hover:not(:disabled) { background: #00eebc; transform: translateY(-1px); box-shadow: 0 0 30px var(--accent-glow); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-secondary {
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { color: var(--text-primary); border-color: var(--text-muted); }
+        .btn-mistral {
+            background: var(--mistral-purple);
+            color: #fff;
+            box-shadow: 0 0 20px var(--mistral-glow);
+        }
+        .btn-mistral:hover:not(:disabled) { background: #7d6ff0; transform: translateY(-1px); }
+        .btn-vlm {
+            background: #1a5a9e;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(26, 90, 158, 0.3);
+        }
+        .btn-vlm:hover:not(:disabled) { background: #2a6aae; transform: translateY(-1px); }
+        .btn-pdf { background: #e74c3c; color: #fff; }
+        .btn-pdf:hover:not(:disabled) { background: #c0392b; transform: translateY(-1px); }
+        .btn-export { background: #2e7d32; color: #fff; }
+        .btn-export:hover:not(:disabled) { background: #388e3c; transform: translateY(-1px); }
+        .btn-export-json { background: #1565c0; color: #fff; }
+        .btn-export-json:hover:not(:disabled) { background: #1976d2; transform: translateY(-1px); }
+        .btn-sm { padding: 4px 12px; font-size: 9px; border-radius: 4px; }
+        .result-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        .result-header {
+            background: var(--bg-surface);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .result-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .status-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        .status-dot.approved { background: var(--green); box-shadow: 0 0 16px var(--green-glow); }
+        .status-dot.rejected { background: var(--red); box-shadow: 0 0 16px var(--red-glow); }
+        .status-dot.pending { background: var(--yellow); animation: pulse 1.2s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+        .result-body {
+            padding: 16px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .result-body::-webkit-scrollbar { width: 6px; }
+        .result-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .charge-item {
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            border-radius: var(--radius);
+            background: var(--bg-deep);
+            border-left: 4px solid var(--border);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .charge-item.pass { border-left-color: var(--green); }
+        .charge-item.fail { border-left-color: var(--red); background: rgba(239,68,68,0.06); }
+        .charge-item.warning { border-left-color: var(--yellow); background: rgba(234,179,8,0.06); }
+        .charge-item .charge-label { color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .charge-item .charge-detail { color: var(--text-primary); }
+        .charge-item .charge-result { font-weight: 600; }
+        .charge-item .charge-result.pass { color: var(--green); }
+        .charge-item .charge-result.fail { color: var(--red); }
+        .charge-item .charge-result.warning { color: var(--yellow); }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .summary-card {
+            background: var(--bg-deep);
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .summary-card .label {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .summary-card .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .empty-result {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        .empty-result .icon { font-size: 40px; display: block; margin-bottom: 12px; opacity: 0.3; }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(60px);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px 20px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-primary);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 100;
+            white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .file-info {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            background: var(--bg-deep);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            display: inline-block;
+        }
+        .progress-container {
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            height: 6px;
+            margin: 8px 0 12px 0;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: var(--radius);
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, var(--green), var(--accent));
+        }
+        .progress-fill.low { background: linear-gradient(90deg, var(--red), var(--yellow)); }
+        .progress-fill.medium { background: linear-gradient(90deg, var(--yellow), var(--accent)); }
+        .bill-info {
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            padding: 12px;
+            margin-bottom: 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            border: 1px solid var(--border);
+        }
+        .bill-info .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+        .bill-info .label { color: var(--text-muted); }
+        .bill-info .value { color: var(--text-primary); }
+        .bill-info .value.amount { color: var(--accent); font-weight: 600; }
+        .charge-count-badge {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+        .charge-count-badge .num { color: var(--accent); font-weight: 700; }
+        .chat-container {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        .chat-header {
+            background: var(--bg-surface);
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .chat-header .title {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chat-header .title .ai-badge {
+            background: var(--mistral-purple);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 8px;
+            letter-spacing: 0.05em;
+        }
+        .chat-messages {
+            padding: 12px 16px;
+            max-height: 250px;
+            overflow-y: auto;
+            background: var(--bg-deep);
+            min-height: 80px;
+        }
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .chat-message {
+            margin-bottom: 6px;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            font-size: 11px;
+            line-height: 1.6;
+            max-width: 88%;
+            animation: fadeIn 0.3s ease;
+        }
+        .chat-message.user {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-message.ai {
+            background: rgba(108,92,231,0.12);
+            border: 1px solid rgba(108,92,231,0.25);
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-message .sender {
+            font-size: 8px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+            font-family: var(--font-mono);
+            letter-spacing: 0.05em;
+        }
+        .chat-message.user .sender { color: var(--accent); }
+        .chat-message.ai .sender { color: #a29bfe; }
+        .chat-message .content { word-break: break-word; }
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .chat-input-area input {
+            flex: 1;
+            min-width: 120px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px 12px;
+            font-family: var(--font-ui);
+            font-size: 11px;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .chat-input-area input:focus { border-color: var(--accent); }
+        .chat-input-area input::placeholder { color: var(--text-muted); }
+        .api-config {
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            padding: 6px 12px;
+            margin-top: 6px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .api-config .label {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+        .api-config input {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 10px;
+            color: var(--text-primary);
+            outline: none;
+            flex: 1;
+            min-width: 120px;
+        }
+        .api-config input:focus { border-color: var(--accent); }
+        .api-config select {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 9px;
+            color: var(--text-primary);
+            outline: none;
+            cursor: pointer;
+        }
+        .api-config select:focus { border-color: var(--accent); }
+        .model-status {
+            font-size: 8px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .model-status .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .model-status .dot.ready { background: var(--green); }
+        .model-status .dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
+        .model-status .dot.error { background: var(--red); }
+        .pipeline-steps {
+            display: flex;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-top: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .pipeline-steps .step {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--bg-surface);
+        }
+        .pipeline-steps .step.active {
+            color: var(--accent);
+            background: rgba(0,212,170,0.1);
+            border: 1px solid var(--accent);
+        }
+        .pipeline-steps .step.done {
+            color: var(--green);
+            background: rgba(34,197,94,0.1);
+            border: 1px solid var(--green);
+        }
+        .pipeline-steps .step .arrow { color: var(--text-muted); margin: 0 2px; }
+        .image-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .image-preview img {
+            width: 100%;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            max-height: 150px;
+            object-fit: cover;
+        }
+        .extraction-warning {
+            background: rgba(234,179,8,0.1);
+            border: 1px solid var(--yellow);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+        .extraction-warning strong { color: var(--yellow); }
+        .json-output {
+            margin-top: 8px;
+            padding: 10px;
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-secondary);
+            display: none;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .export-section {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .export-section .label {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            align-self: center;
+        }
+        .readable-bill {
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            padding: 12px;
+            border: 1px solid var(--border);
+            margin-top: 8px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+        }
+        .readable-bill .section-title {
+            color: var(--accent);
+            font-weight: 600;
+            margin: 8px 0 4px 0;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .readable-bill .field {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .readable-bill .field .label { color: var(--text-muted); }
+        .readable-bill .field .value { color: var(--text-primary); }
+        .readable-bill .field .value.amount { color: var(--accent); font-weight: 600; }
+        .readable-bill .charge-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0 2px 12px;
+            border-left: 2px solid var(--border);
+            margin: 2px 0;
+            font-size: 10px;
+        }
+        .readable-bill .charge-row .desc { color: var(--text-secondary); }
+        .readable-bill .charge-row .amt { color: var(--accent); }
+        .suggested-questions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 6px 12px;
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-top: 4px;
+        }
+        .suggested-questions .q-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: all 0.15s;
+        }
+        .suggested-questions .q-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(0,212,170,0.06);
+        }
+        .pdf-progress {
+            background: var(--bg-deep);
+            border-radius: var(--radius);
+            padding: 8px 12px;
+            margin-top: 6px;
+            border: 1px solid var(--border);
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            display: none;
+        }
+        .pdf-progress .bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .pdf-progress .bar .fill {
+            height: 100%;
+            background: #1a5a9e;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .validation-decision {
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            margin: 8px 0;
+            text-align: center;
+            border: 1px solid;
+        }
+        .validation-decision.approved {
+            background: rgba(34,197,94,0.15);
+            border-color: var(--green);
+            color: var(--green);
+        }
+        .validation-decision.rejected {
+            background: rgba(239,68,68,0.15);
+            border-color: var(--red);
+            color: var(--red);
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <header>
+        <div class="logo-area">
+            <div class="logo-icon">🏥</div>
+            <span class="logo-text">Leapstack<span> AI Claims</span></span>
+        </div>
+        <div class="header-sep"></div>
+        <span style="font-size:12px;color:var(--text-muted)">VLM OCR · Policy Validation ·Automated Adjudication</span>
+        <div class="header-info">
+            <span class="file-info" id="status-info">📋 Ready</span>
+        </div>
+    </header>
+
+    <div class="grid">
+        <!-- BILL PANEL -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-label">📄 MEDICAL BILL</span>
+                <span class="panel-badge" id="ip-badge">EMPTY</span>
+                <span class="panel-badge" id="hospital-badge" style="display:none;">🏥</span>
+                <span class="charge-count-badge" id="chargeCountBadge" style="display:none;">💰 <span class="num" id="chargeCountNum">0</span> charges</span>
+                <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;">
+                    <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('ip-file-input').click()">📎 Upload TXT</button>
+                    <button class="btn btn-pdf" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('pdf-file-input').click()">📄 Upload PDF</button>
+                    <input type="file" id="ip-file-input" style="display:none" accept=".txt,.md,.html,.htm" onchange="loadIPFile(event)" />
+                    <input type="file" id="pdf-file-input" style="display:none" accept=".pdf" onchange="loadPDFFile(event)" />
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="drop-zone" id="bill-drop-zone" onclick="document.getElementById('ip-file-input').click()"
+                     ondragover="onBillDragOver(event)" ondragleave="onBillDragLeave(event)" ondrop="onBillDrop(event)">
+                    <span class="icon">📄</span>
+                    <div class="title">Drop your medical bill here</div>
+                    <div class="hint">or click to browse (.txt, .pdf)</div>
+                </div>
+                <div class="pipeline-steps" id="pipelineSteps">
+                    <span class="step" id="stepPdf">📄PDF</span><span class="step arrow">→</span>
+                    <span class="step" id="stepImage">🖼️Image</span><span class="step arrow">→</span>
+                    <span class="step" id="stepVlm">👁️VLM OCR</span><span class="step arrow">→</span>
+                    <span class="step" id="stepClean">🧹Clean</span><span class="step arrow">→</span>
+                    <span class="step" id="stepParse">🧠Parse</span><span class="step arrow">→</span>
+                    <span class="step" id="stepValidate">✅Validate</span>
+                </div>
+                <div id="bill-preview" style="display:none;margin-top:10px;">
+                    <div id="bill-content" class="bill-info"></div>
+                    <div style="margin-top:8px;">
+                        <textarea id="ip-text" placeholder="Raw bill text will appear here..." style="height:200px;"></textarea>
+                    </div>
+                </div>
+                <div id="pdf-progress" class="pdf-progress">
+                    <span id="pdfStatus">📄 Processing...</span>
+                    <div class="bar"><div class="fill" id="pdfProgressBar"></div></div>
+                </div>
+                <div id="extractionWarning" class="extraction-warning" style="display:none;">
+                    <strong>⚠️ VLM OCR extraction may be incomplete</strong><br>
+                    <span id="extractionMessage">Try adjusting the image quality or uploading a clearer document.</span>
+                </div>
+                <div id="imagePreviewContainer" style="display:none;margin-top:8px;">
+                    <div style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:4px;">📷 Extracted Pages:</div>
+                    <div class="image-preview" id="imagePreview"></div>
+                </div>
+            </div>
+            <div class="action-bar">
+                <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">
+                    Chars: <span id="ip-char-count">0</span>
+                </span>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;margin-left:auto;" onclick="clearIP()">✕ Clear</button>
+            </div>
+        </div>
+
+        <!-- POLICY PANEL -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-label">📜 POLICY CONTRACT</span>
+                <span class="panel-badge" id="policy-badge">EMPTY</span>
+                <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;">
+                    <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('policy-file-input').click()">📎 Upload</button>
+                    <input type="file" id="policy-file-input" style="display:none" accept=".pdf,.txt" onchange="loadPolicyFile(event)" />
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="drop-zone" id="policy-drop-zone" onclick="document.getElementById('policy-file-input').click()" 
+                     ondragover="onPolicyDragOver(event)" ondragleave="onPolicyDragLeave(event)" ondrop="onPolicyDrop(event)">
+                    <span class="icon">📄</span>
+                    <div class="title">Drop your policy document here</div>
+                    <div class="hint">or click to browse (.pdf, .txt)</div>
+                </div>
+                <div id="policy-preview" style="display:none;margin-top:10px;">
+                    <div style="background:var(--bg-deep);padding:12px;border-radius:var(--radius);">
+                        <div style="font-family:var(--font-mono);font-size:11px;color:var(--accent);" id="policy-file-name"></div>
+                        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:4px;" id="policy-file-info"></div>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <textarea id="policy-text" placeholder="Policy text will appear here after loading..." style="height:200px;"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="action-bar">
+                <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">
+                    Chars: <span id="policy-char-count">0</span>
+                </span>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;margin-left:auto;" onclick="clearPolicy()">✕ Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn btn-vlm" onclick="runFullPipeline()" id="pipelineBtn">🚀 VLM OCR → AI Clean → Parse → Validate</button>
+        <button class="btn btn-secondary" onclick="runVLMOnly()" id="vlmBtn">👁️ VLM OCR Only (PDF → Text)</button>
+        <button class="btn btn-primary" id="validate-btn" onclick="validate()" disabled>
+            🔍 Validate Against Policy
+        </button>
+        <button class="btn btn-secondary" onclick="clearAll()">🔄 Reset All</button>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="title">🤖 Mistral AI Assistant <span class="ai-badge">VLM OCR</span></div>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <div class="model-status"><span class="dot" id="mistralDot"></span><span id="mistralStatusText">Enter API Key</span></div>
+                <button class="btn btn-secondary btn-sm" onclick="clearChat()">🗑️ Clear</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message ai">
+                <div class="sender">🤖 Mistral AI</div>
+                <div class="content">👋 Hi! Upload a bill & policy, then run pipeline. I'll help validate & answer questions.</div>
+            </div>
+            <div class="suggested-questions" id="suggestedQuestions">
+                <span style="font-size:8px;color:var(--text-muted);font-family:var(--font-mono);align-self:center;">Quick actions:</span>
+                <button class="q-btn" onclick="runFullPipeline()">🚀 Full Pipeline</button>
+                <button class="q-btn" onclick="validate()">🔍 Validate</button>
+                <button class="q-btn" onclick="askQuestion('Summarize all charges and highlight any that may exceed policy limits.')">📋 Review</button>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Ask about the bill..." />
+            <button class="btn btn-mistral btn-sm" id="sendChatBtn">Send</button>
+        </div>
+        <div class="api-config">
+            <span class="label">🔑 Mistral API Key:</span>
+            <input type="password" id="apiKeyInput" placeholder="Enter your API key..." />
+            <select class="model-select" id="modelSelect">
+                <option value="pixtral-12b-2409">Pixtral-12B (VLM - Best for OCR)</option>
+                <option value="mistral-small-latest">Mistral Small</option>
+                <option value="mistral-medium-latest">Mistral Medium</option>
+                <option value="mistral-large-latest">Mistral Large</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="testApiKey()">Test</button>
+        </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="result-panel">
+        <div class="result-header">
+            <div class="result-status">
+                <div class="status-dot pending" id="result-dot"></div>
+                <span id="result-label">Awaiting processing</span>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+                <span class="file-info" id="result-metrics">—</span>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="copyResult()" id="copy-result-btn" disabled>📋 Copy</button>
+            </div>
+        </div>
+        <div class="result-body" id="result-body">
+            <div class="empty-result">
+                <span class="icon">🚀</span>
+                <p>Upload a medical bill & policy, then run the pipeline.</p>
+                <p style="font-size:10px;color:var(--border);margin-top:4px;">Uses VLM OCR + AI parsing + Policy Validation</p>
+            </div>
+            <div id="result-content" style="display:none;"></div>
+            <div id="readableBill" class="readable-bill" style="display:none;"></div>
+        </div>
+        <div class="export-section">
+            <span class="label">📤 Export:</span>
+            <button class="btn btn-export btn-sm" onclick="exportTXT()">📄 TXT</button>
+            <button class="btn btn-export-json btn-sm" onclick="exportJSON()">📊 JSON</button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleJSONPreview()">👁️ JSON</button>
+            <span style="font-size:8px;color:var(--text-muted);font-family:var(--font-mono);margin-left:auto;">AI-parsed data</span>
+        </div>
+        <div id="jsonPreview" class="json-output"></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+
+<script>
+    // ─── GLOBALS ───────────────────────────────────────────────────
+    let pdfjsLib = null;
+    let extractedText = '';
+    let cleanedText = '';
+    let parsedBillData = null;
+    let currentCharges = [];
+    let pageImages = [];
+    let validationResult = null; // { approved: bool, reasons: [] }
+
+    // ─── PDF.JS LOADER ────────────────────────────────────────────
+    async function loadPDFJS() {
+        if (pdfjsLib) return pdfjsLib;
+        try {
+            const module = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.mjs');
+            pdfjsLib = module;
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+            return pdfjsLib;
+        } catch (e) { throw new Error('Failed to load PDF.js: ' + e.message); }
+    }
+
+    // ─── VLM OCR (Mistral Pixtral) ──────────────────────────────
+    async function callVLMOCR(imageData, pageNum, totalPages) {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        if (!apiKey) throw new Error('Please enter your Mistral API key');
+        const base64Image = imageData.split(',')[1];
+        const resp = await fetch('http://localhost:3000/api/mistral', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                model: 'pixtral-12b-2409',
+                messages: [{
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: `Extract ALL text from this medical bill page (${pageNum}/${totalPages}). Return ONLY the text content.` },
+                        { type: 'image_url', image_url: `data:image/jpeg;base64,${base64Image}` }
+                    ]
+                }],
+                max_tokens: 4096,
+                temperature: 0.1
+            })
+        });
+        if (!resp.ok) {
+            let msg = `API Error (${resp.status})`;
+            try { const d = await resp.json(); msg = d.error?.message || msg; } catch(e) {}
+            throw new Error(msg);
+        }
+        const data = await resp.json();
+        return data.choices[0].message.content || '';
+    }
+
+    // ─── MISTRAL TEXT ─────────────────────────────────────────────
+    async function callMistralText(messages, model = null) {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        if (!apiKey) throw new Error('Please enter your Mistral API key');
+        const selectedModel = model || document.getElementById('modelSelect').value || 'mistral-small-latest';
+        const resp = await fetch('http://localhost:3000/api/mistral', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json'},
+            body: JSON.stringify({ model: selectedModel, messages, temperature: 0.1, max_tokens: 4096, top_p: 0.95 })
+        });
+        if (!resp.ok) {
+            let msg = `API Error (${resp.status})`;
+            try { const d = await resp.json(); msg = d.error?.message || msg; } catch(e) {}
+            throw new Error(msg);
+        }
+        const data = await resp.json();
+        return data.choices[0].message.content || '';
+    }
+
+    // ─── PDF → IMAGES + VLM OCR ──────────────────────────────────
+    async function pdfToImages(file) {
+        const progressDiv = document.getElementById('pdf-progress');
+        const progressBar = document.getElementById('pdfProgressBar');
+        const statusText = document.getElementById('pdfStatus');
+        const previewDiv = document.getElementById('imagePreview');
+        progressDiv.style.display = 'block';
+        progressBar.style.width = '10%';
+        statusText.textContent = '📄 Loading PDF...';
+        pageImages = [];
+        updatePipelineStep('stepPdf', 'active');
+
+        try {
+            const pdfjs = await loadPDFJS();
+            progressBar.style.width = '20%';
+            statusText.textContent = '📄 Reading PDF...';
+            const arrayBuffer = await file.arrayBuffer();
+            const typedarray = new Uint8Array(arrayBuffer);
+            progressBar.style.width = '30%';
+            const pdf = await pdfjs.getDocument({ data: typedarray }).promise;
+            const totalPages = pdf.numPages;
+            const images = [];
+            progressBar.style.width = '35%';
+            statusText.textContent = `🖼️ Converting ${totalPages} pages...`;
+            updatePipelineStep('stepImage', 'active');
+
+            for (let i = 1; i <= totalPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 2.5 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+                const imageData = canvas.toDataURL('image/jpeg', 0.95);
+                images.push(imageData);
+                const img = document.createElement('img');
+                img.src = imageData;
+                img.alt = `Page ${i}`;
+                img.title = `Page ${i}`;
+                previewDiv.appendChild(img);
+                const pct = 35 + (i / totalPages) * 30;
+                progressBar.style.width = Math.min(pct, 65) + '%';
+                statusText.textContent = `🖼️ Page ${i}/${totalPages} converted`;
+                canvas.remove();
+            }
+            pageImages = images;
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+            updatePipelineStep('stepImage', 'done');
+            progressBar.style.width = '65%';
+
+            let ocrText = '';
+            statusText.textContent = `👁️ VLM OCR on ${totalPages} pages...`;
+            updatePipelineStep('stepVlm', 'active');
+            for (let i = 0; i < images.length; i++) {
+                statusText.textContent = `👁️ OCR page ${i+1}/${totalPages}...`;
+                const pct = 65 + ((i+1)/totalPages)*30;
+                progressBar.style.width = Math.min(pct, 95) + '%';
+                try {
+                    const pageOCR = await callVLMOCR(images[i], i+1, totalPages);
+                    ocrText += pageOCR + '\n\n';
+                } catch(e) {
+                    ocrText += `[Page ${i+1} OCR failed]\n\n`;
+                }
+            }
+            let cleaned = cleanOCRText(ocrText);
+            extractedText = cleaned;
+            updatePipelineStep('stepVlm', 'done');
+            progressBar.style.width = '100%';
+            statusText.textContent = `✅ VLM OCR complete! ${cleaned.length} chars`;
+            if (cleaned.replace(/\s/g,'').length < 50 || !/\d/.test(cleaned)) {
+                document.getElementById('extractionWarning').style.display = 'block';
+                document.getElementById('extractionMessage').textContent = 'VLM OCR extracted limited text. Try a clearer file.';
+            } else {
+                document.getElementById('extractionWarning').style.display = 'none';
+            }
+            setTimeout(() => { progressDiv.style.display = 'none'; }, 3000);
+            return cleaned;
+        } catch (err) {
+            statusText.textContent = '❌ Error: ' + err.message;
+            progressBar.style.width = '0%';
+            document.getElementById('extractionWarning').style.display = 'block';
+            document.getElementById('extractionMessage').textContent = 'PDF processing failed: ' + err.message;
+            throw err;
+        }
+    }
+
+    function cleanOCRText(text) {
+        let t = text;
+        t = t.replace(/S([0-9,]+\.\d{2})/g, '$$$1');
+        t = t.replace(/S([0-9,]+)/g, '$$$1');
+        t = t.replace(/\\\(/g, '(').replace(/\\\)/g, ')');
+        t = t.replace(/\$\\/g, '$').replace(/\\\$/g, '$');
+        t = t.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        t = t.replace(/\s+/g, ' ').trim();
+        return t;
+    }
+
+    function fallbackClean(text) {
+        let t = text.replace(/S([0-9,]+)/g, '$$$1').replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n');
+        return t.replace(/[ \t]{2,}/g, ' ');
+    }
+
+    // ─── AI CLEAN & PARSE ─────────────────────────────────────────
+    async function cleanWithAI(text) {
+        if (!document.getElementById('apiKeyInput').value.trim()) throw new Error('Enter Mistral API key');
+        updatePipelineStep('stepClean', 'active');
+        addChatMessage('ai', '🧹 Cleaning VLM OCR text with AI...');
+        const prompt = `You are an expert medical bill cleaner. Clean and fix this Hong Kong hospital bill text extracted by VLM OCR.
+CRITICAL RULES:
+1. Fix S currency to $ (S920 → $920)
+2. Remove HTML tags and formatting artifacts
+3. Fix spacing and line breaks
+4. Keep all medical charge information
+5. Return ONLY the cleaned text
+
+BILL TEXT:
+${text}
+
+Return ONLY the cleaned text.`;
+        const resp = await callMistralText([
+            { role: 'system', content: 'You are a precise medical bill cleaner. Return ONLY the cleaned text.' },
+            { role: 'user', content: prompt }
+        ]);
+        let cleaned = resp.replace(/^```\s*/g, '').replace(/\s*```$/g, '').trim();
+        if (cleaned.length < 50 || cleaned === text) cleaned = fallbackClean(text);
+        updatePipelineStep('stepClean', 'done');
+        addChatMessage('ai', '✅ Text cleaned successfully!');
+        return cleaned;
+    }
+
+    async function parseWithAI(text) {
+        if (!document.getElementById('apiKeyInput').value.trim()) throw new Error('Enter Mistral API key');
+        updatePipelineStep('stepParse', 'active');
+        addChatMessage('ai', '🧠 Parsing bill to JSON...');
+        const prompt = `You are an expert medical bill parser. Extract ALL information from this Hong Kong hospital bill and return ONLY valid JSON.
+
+OUTPUT FORMAT:
+{
+  "hospital": "Hospital Name or null",
+  "billNumber": "Bill number or null",
+  "patientName": "Patient name or null",
+  "patientId": "Patient ID or null",
+  "admissionDate": "YYYY-MM-DD or null",
+  "dischargeDate": "YYYY-MM-DD or null",
+  "depositPaid": 0.00,
+  "grandTotal": 0.00,
+  "balanceDue": 0.00,
+  "charges": [
+    {
+      "date": "YYYY-MM-DD or null",
+      "code": "Charge code or null",
+      "description": "Charge description",
+      "category": "accommodation|laboratory|pharmacy|treatment|surgery|cardiac|dietary|supplies|doctor_fee|admission|other",
+      "amount": 0.00,
+      "discount": 0.00
+    }
+  ],
+  "notes": "Any additional notes or null"
+}
+
+BILL TEXT:
+${text}
+
+Return ONLY the JSON.`;
+        const resp = await callMistralText([
+            { role: 'system', content: 'You are a precise medical bill parser. Return ONLY valid JSON.' },
+            { role: 'user', content: prompt }
+        ]);
+        let jsonStr = resp.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+        const data = JSON.parse(jsonStr);
+        updatePipelineStep('stepParse', 'done');
+        addChatMessage('ai', `✅ Parsed ${(data.charges || []).length} charges!`);
+        return data;
+    }
+
+    // ─── PIPELINE ──────────────────────────────────────────────────
+    function updatePipelineStep(stepId, status) {
+        const el = document.getElementById(stepId);
+        if (!el) return;
+        el.className = 'step';
+        if (status === 'active') el.classList.add('active');
+        if (status === 'done') el.classList.add('done');
+    }
+    function resetPipelineSteps() {
+        ['stepPdf','stepImage','stepVlm','stepClean','stepParse','stepValidate'].forEach(id => {
+            document.getElementById(id).className = 'step';
+        });
+    }
+
+    async function runFullPipeline() {
+        resetPipelineSteps();
+        let invoiceText = document.getElementById('ip-text').value.trim();
+        if (!invoiceText && extractedText) {
+            invoiceText = extractedText;
+            document.getElementById('ip-text').value = invoiceText;
+        }
+        if (!invoiceText) { showToast('⚠️ Please upload a bill first.'); return; }
+        if (!document.getElementById('apiKeyInput').value.trim()) { showToast('⚠️ Enter Mistral API key.'); return; }
+
+        const pipelineBtn = document.getElementById('pipelineBtn');
+        pipelineBtn.disabled = true;
+        pipelineBtn.textContent = '⏳ Processing...';
+        document.getElementById('result-dot').className = 'status-dot pending';
+        document.getElementById('result-label').textContent = '🔄 Running pipeline...';
+        document.getElementById('result-metrics').textContent = '⏳ Processing';
+
+        try {
+            let cleaned = invoiceText;
+            if (invoiceText.length > 100) {
+                try {
+                    cleaned = await cleanWithAI(invoiceText);
+                    cleanedText = cleaned;
+                    document.getElementById('ip-text').value = cleaned;
+                } catch(e) {
+                    cleaned = fallbackClean(invoiceText);
+                    cleanedText = cleaned;
+                    addChatMessage('ai', '⚠️ Used fallback cleaner (AI cleaning failed).');
+                }
+            }
+            updatePipelineStep('stepClean', 'done');
+
+            const data = await parseWithAI(cleaned);
+            parsedBillData = data;
+            currentCharges = data.charges || [];
+            displayParsedBill(data);
+            document.getElementById('chargeCountNum').textContent = currentCharges.length;
+            document.getElementById('chargeCountBadge').style.display = 'inline-block';
+
+            // Validate
+            const policyText = document.getElementById('policy-text').value.trim();
+            if (policyText) {
+                updatePipelineStep('stepValidate', 'active');
+                validate();
+                updatePipelineStep('stepValidate', 'done');
+            } else {
+                document.getElementById('result-dot').className = 'status-dot approved';
+                document.getElementById('result-label').textContent = '✅ Bill parsed successfully!';
+                document.getElementById('result-metrics').textContent = `🏥 ${data.hospital || 'Unknown'} · ${currentCharges.length} charges · HK$ ${(data.grandTotal || 0).toFixed(2)}`;
+                updatePipelineStep('stepValidate', 'done');
+            }
+            const preview = document.getElementById('jsonPreview');
+            preview.textContent = JSON.stringify(data, null, 2);
+            preview.style.display = 'block';
+            checkReady();
+            addChatMessage('ai', `✅ Pipeline complete! Found ${currentCharges.length} charges. Total: HK$ ${(data.grandTotal || 0).toFixed(2)}`);
+            showToast(`✅ Pipeline complete! ${currentCharges.length} charges found.`);
+        } catch (err) {
+            document.getElementById('result-dot').className = 'status-dot error';
+            document.getElementById('result-label').textContent = '❌ Pipeline failed';
+            document.getElementById('result-metrics').textContent = 'Error';
+            addChatMessage('ai', `❌ Pipeline error: ${err.message}`);
+            showToast('❌ Pipeline failed: ' + err.message);
+        } finally {
+            pipelineBtn.disabled = false;
+            pipelineBtn.textContent = '🚀 VLM OCR → AI Clean → Parse → Validate';
+        }
+    }
+
+    async function runVLMOnly() {
+        const fileInput = document.getElementById('pdf-file-input');
+        if (!fileInput.files || !fileInput.files[0]) { showToast('⚠️ Please upload a PDF first.'); return; }
+        const file = fileInput.files[0];
+        showToast(`👁️ VLM OCR on ${file.name}...`);
+        resetPipelineSteps();
+        try {
+            const text = await pdfToImages(file);
+            document.getElementById('ip-text').value = text;
+            extractedText = text;
+            updateCounts(); updateBadges(); checkReady();
+            if (text.replace(/\s/g,'').length > 50) {
+                showToast(`✅ VLM OCR complete! ${text.length} chars extracted.`);
+                addChatMessage('ai', `✅ VLM OCR extracted ${text.length} chars from ${file.name}`);
+            } else {
+                showToast(`⚠️ VLM OCR extracted limited text (${text.length} chars).`);
+                addChatMessage('ai', `⚠️ VLM OCR extracted only ${text.length} chars.`);
+            }
+        } catch (err) {
+            showToast('❌ VLM OCR failed: ' + err.message);
+            addChatMessage('ai', `❌ VLM OCR failed: ${err.message}`);
+        }
+    }
+
+    // ─── VALIDATION (with APPROVE/REJECT) ──────────────────────
+    function validate() {
+        if (!parsedBillData || !parsedBillData.charges) {
+            showToast('⚠️ Please parse a bill first.');
+            return;
+        }
+        const policyText = document.getElementById('policy-text').value.trim();
+        if (!policyText) {
+            showToast('⚠️ Please load a policy contract.');
+            return;
+        }
+        updatePipelineStep('stepValidate', 'active');
+        document.getElementById('result-dot').className = 'status-dot pending';
+        document.getElementById('result-label').textContent = '🔍 Validating against policy...';
+        document.getElementById('result-metrics').textContent = '⏳ Analyzing';
+
+        const limits = extractPolicyLimits(policyText);
+        const results = [];
+        let passed = 0, failed = 0, warnings = 0;
+        const reasons = [];
+
+        for (const charge of parsedBillData.charges) {
+            const relevantLimits = limits.filter(l => 
+                charge.description.toLowerCase().includes(l.keyword.toLowerCase()) ||
+                l.keyword.toLowerCase().includes(charge.description.toLowerCase())
+            );
+            let status = 'pass';
+            let message = '✅ Within policy limit';
+            let limitAmount = null;
+            if (relevantLimits.length > 0) {
+                const limit = relevantLimits[0];
+                limitAmount = limit.amount;
+                if (charge.amount > limit.amount) {
+                    status = 'fail';
+                    message = `❌ Exceeds limit by HK$ ${(charge.amount - limit.amount).toFixed(2)} (limit: HK$ ${limit.amount.toFixed(2)})`;
+                    failed++;
+                    reasons.push(`Charge "${charge.description}" (HK$ ${charge.amount.toFixed(2)}) exceeds policy limit of HK$ ${limit.amount.toFixed(2)}`);
+                } else {
+                    message = `✅ Within limit (limit: HK$ ${limit.amount.toFixed(2)})`;
+                    passed++;
+                }
+            } else {
+                if (charge.amount > 100000) {
+                    status = 'warning';
+                    message = '⚠️ Unusually high amount, no specific policy limit found';
+                    warnings++;
+                    reasons.push(`Charge "${charge.description}" (HK$ ${charge.amount.toFixed(2)}) is unusually high with no specific policy limit.`);
+                } else {
+                    passed++;
+                }
+            }
+            results.push({ charge, status, message, limit: limitAmount });
+        }
+
+        const totalChecks = results.length;
+        const complianceRate = totalChecks > 0 ? (passed / totalChecks) * 100 : 0;
+
+        // FINAL DECISION: APPROVED if all charges pass (no fails), otherwise REJECTED
+        const approved = (failed === 0);
+        validationResult = { approved, reasons, complianceRate, passed, failed, warnings };
+
+        let statusText, dotClass, decisionHtml;
+        if (approved) {
+            statusText = `✅ APPROVED · All charges comply (${Math.round(complianceRate)}% compliance)`;
+            dotClass = 'status-dot approved';
+            decisionHtml = `<div class="validation-decision approved">✅ APPROVED · Bill meets all policy requirements</div>`;
+        } else {
+            statusText = `❌ REJECTED · ${failed} charge(s) exceed limits (${Math.round(complianceRate)}% compliance)`;
+            dotClass = 'status-dot rejected';
+            decisionHtml = `<div class="validation-decision rejected">❌ REJECTED · ${failed} charge(s) exceed policy limits</div>`;
+            if (reasons.length) {
+                decisionHtml += `<div style="margin:8px 0;font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);">
+                    <strong>Reasons:</strong><ul style="padding-left:16px;margin:4px 0;">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>
+                </div>`;
+            }
+        }
+
+        document.getElementById('result-dot').className = dotClass;
+        document.getElementById('result-label').textContent = statusText;
+        document.getElementById('result-metrics').textContent = `📊 ${totalChecks} charges · ${passed} passed · ${failed} failed · ${Math.round(complianceRate)}%`;
+        updatePipelineStep('stepValidate', 'done');
+
+        let html = decisionHtml || '';
+        html += `<div class="summary-grid">`;
+        const stats = [
+            { label: 'Compliance', value: Math.round(complianceRate) + '%' },
+            { label: 'Charges Checked', value: totalChecks },
+            { label: 'Passed', value: passed },
+            { label: 'Failed', value: failed },
+            { label: 'Warnings', value: warnings },
+        ];
+        for (const stat of stats) {
+            html += `<div class="summary-card"><div class="label">${stat.label}</div><div class="value">${stat.value}</div></div>`;
+        }
+        html += `</div>`;
+        html += `<div class="progress-container"><div class="progress-fill ${complianceRate >= 80 ? '' : (complianceRate >= 50 ? 'medium' : 'low')}" style="width:${Math.min(complianceRate,100)}%;"></div></div>`;
+
+        if (results.length > 0) {
+            html += `<div style="font-weight:600;margin:12px 0 8px;font-size:12px;">💰 Charge-by-Charge Validation</div>`;
+            for (const r of results) {
+                const statusClass = r.status === 'pass' ? 'pass' : (r.status === 'fail' ? 'fail' : 'warning');
+                const statusLabel = r.status === 'pass' ? '✅ PASS' : (r.status === 'fail' ? '❌ FAIL' : '⚠️ WARNING');
+                html += `<div class="charge-item ${statusClass}">`;
+                html += `<div class="charge-label">${r.charge.category || 'GENERAL'} · ${r.charge.description}</div>`;
+                html += `<div class="charge-detail">Amount: HK$ ${r.charge.amount.toFixed(2)}</div>`;
+                html += `<div class="charge-result ${statusClass}">${statusLabel} · ${r.message}</div>`;
+                if (r.limit) html += `<div style="font-size:9px;color:var(--text-muted);">Policy limit: HK$ ${r.limit.toFixed(2)}</div>`;
+                html += `</div>`;
+            }
+        }
+
+        document.getElementById('result-content').innerHTML = html;
+        document.getElementById('result-content').style.display = 'block';
+        document.getElementById('readableBill').style.display = 'none';
+        document.getElementById('copy-result-btn').disabled = false;
+
+        addChatMessage('ai', `✅ Validation complete! ${approved ? 'APPROVED' : 'REJECTED'}. ${passed} passed, ${failed} failed.`);
+    }
+
+    function extractPolicyLimits(text) {
+        const limits = [];
+        const patterns = [
+            /(?:maximum|limit|capped|up to|not exceed|不超过|最高|上限)\s*[:：]?\s*\$?([\d,]+\.?\d*)\s*(?:for\s*)?([^\n.]{1,50})/i,
+            /([^\n.]{1,50})\s*(?:maximum|limit|capped|up to|not exceed|不超过|最高|上限)\s*\$?([\d,]+\.?\d*)/i,
+            /\$([\d,]+\.?\d*)\s*(?:maximum|limit|上限|最高)\s*(?:for\s*)?([^\n.]{1,50})/i
+        ];
+        for (const line of text.split('\n')) {
+            for (const pattern of patterns) {
+                const m = line.match(pattern);
+                if (m) {
+                    let amount = parseFloat(m[1]?.replace(/,/g,''));
+                    let keyword = m[2] || 'general';
+                    if (!isNaN(amount) && amount > 0 && amount < 10000000) {
+                        limits.push({ keyword: keyword.trim(), amount });
+                    }
+                }
+            }
+        }
+        return limits;
+    }
+
+    // ─── DISPLAY ──────────────────────────────────────────────────
+    function displayParsedBill(data) {
+        const container = document.getElementById('bill-content');
+        const preview = document.getElementById('bill-preview');
+        const dropZone = document.getElementById('bill-drop-zone');
+        const badge = document.getElementById('hospital-badge');
+        if (!data || !data.charges) { container.innerHTML = `<div style="color:var(--text-muted);">⚠️ No data parsed.</div>`; return; }
+        badge.textContent = `🏥 ${data.hospital || 'Unknown Hospital'}`;
+        badge.style.display = 'inline-block';
+        badge.className = 'panel-badge hospital-detected';
+        let html = '';
+        html += `<div class="row"><span class="label">Hospital</span><span class="value">${data.hospital || '—'}</span></div>`;
+        html += `<div class="row"><span class="label">Patient</span><span class="value">${data.patientName || '—'}</span></div>`;
+        if (data.billNumber) html += `<div class="row"><span class="label">Bill No.</span><span class="value">${data.billNumber}</span></div>`;
+        if (data.patientId) html += `<div class="row"><span class="label">Patient ID</span><span class="value">${data.patientId}</span></div>`;
+        html += `<div class="row"><span class="label">Admission</span><span class="value">${data.admissionDate || '—'}</span></div>`;
+        html += `<div class="row"><span class="label">Discharge</span><span class="value">${data.dischargeDate || '—'}</span></div>`;
+        if (data.depositPaid !== null && data.depositPaid !== undefined) {
+            html += `<div class="row"><span class="label">Deposit Paid</span><span class="value amount">HK$ ${data.depositPaid.toFixed(2)}</span></div>`;
+        }
+        if (data.grandTotal !== null && data.grandTotal !== undefined) {
+            html += `<div class="row"><span class="label">Grand Total</span><span class="value amount">HK$ ${data.grandTotal.toFixed(2)}</span></div>`;
+        }
+        if (data.balanceDue !== null && data.balanceDue !== undefined) {
+            html += `<div class="row" style="background:rgba(0,212,170,0.08);border-radius:8px;padding:6px 8px;margin-top:4px;">
+                <span class="label" style="font-weight:700;">Balance Due</span>
+                <span class="value amount" style="font-weight:700;">HK$ ${data.balanceDue.toFixed(2)}</span>
+            </div>`;
+        }
+        if (data.charges && data.charges.length > 0) {
+            html += `<div style="margin-top:8px;font-weight:600;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">💰 Charges (${data.charges.length})</div>`;
+            for (const ch of data.charges) {
+                const catColor = ch.category === 'doctor_fee' ? '#a29bfe' : 'var(--accent)';
+                html += `<div class="row" style="padding-left:8px;border-left:2px solid ${catColor};margin-top:2px;">
+                    <span class="label" style="font-size:9px;">${ch.code || '•'}</span>
+                    <span class="value" style="font-size:10px;">${ch.description} <span style="color:var(--text-muted);">· HK$ ${ch.amount.toFixed(2)}</span></span>
+                </div>`;
+            }
+        }
+        container.innerHTML = html;
+        preview.style.display = 'block';
+        dropZone.style.display = 'none';
+        renderReadableBill(data);
+    }
+
+    function renderReadableBill(data) {
+        const container = document.getElementById('readableBill');
+        if (!data || !data.charges) { container.style.display = 'none'; return; }
+        let html = `<div class="section-title">🏥 ${data.hospital || 'Hospital'}</div>`;
+        html += `<div class="field"><span class="label">Patient</span><span class="value">${data.patientName || '—'}</span></div>`;
+        if (data.billNumber) html += `<div class="field"><span class="label">Bill No.</span><span class="value">${data.billNumber}</span></div>`;
+        html += `<div class="field"><span class="label">Admission</span><span class="value">${data.admissionDate || '—'}</span></div>`;
+        html += `<div class="field"><span class="label">Discharge</span><span class="value">${data.dischargeDate || '—'}</span></div>`;
+        if (data.charges && data.charges.length > 0) {
+            html += `<div class="section-title">💰 Charges (${data.charges.length})</div>`;
+            const grouped = {};
+            for (const ch of data.charges) {
+                const cat = ch.category || 'other';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(ch);
+            }
+            const categoryLabels = { 'accommodation':'🏨 Accommodation','laboratory':'🔬 Lab','pharmacy':'💊 Pharmacy','treatment':'🩺 Treatment','surgery':'🔪 Surgery','cardiac':'❤️ Cardiac','dietary':'🍽️ Dietary','supplies':'📦 Supplies','doctor_fee':'👨‍⚕️ Doctor Fee','admission':'📋 Admission','other':'📌 Other' };
+            for (const [cat, items] of Object.entries(grouped)) {
+                html += `<div style="margin-top:4px;font-size:9px;color:var(--text-muted);">${categoryLabels[cat] || cat}</div>`;
+                for (const ch of items) {
+                    html += `<div class="charge-row"><span class="desc">${ch.code ? '['+ch.code+'] ' : ''}${ch.description}</span><span class="amt">HK$ ${ch.amount.toFixed(2)}</span></div>`;
+                }
+            }
+        }
+        html += `<div class="section-title" style="margin-top:8px;">📊 Summary</div>`;
+        if (data.depositPaid !== null && data.depositPaid !== undefined) {
+            html += `<div class="field"><span class="label">Deposit Paid</span><span class="value amount">HK$ ${data.depositPaid.toFixed(2)}</span></div>`;
+        }
+        if (data.grandTotal !== null && data.grandTotal !== undefined) {
+            html += `<div class="field"><span class="label">Grand Total</span><span class="value amount">HK$ ${data.grandTotal.toFixed(2)}</span></div>`;
+        }
+        if (data.balanceDue !== null && data.balanceDue !== undefined) {
+            html += `<div class="field" style="background:rgba(0,212,170,0.08);border-radius:8px;padding:6px 8px;margin-top:4px;">
+                <span class="label" style="font-weight:700;">Balance Due</span>
+                <span class="value amount" style="font-weight:700;">HK$ ${data.balanceDue.toFixed(2)}</span>
+            </div>`;
+        }
+        container.innerHTML = html;
+        container.style.display = 'block';
+        document.getElementById('result-content').style.display = 'none';
+    }
+
+    // ─── FILE LOADING ─────────────────────────────────────────────
+    async function loadPDFFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        showToast(`📄 Processing PDF: ${file.name}...`);
+        resetPipelineSteps();
+        try {
+            const text = await pdfToImages(file);
+            document.getElementById('ip-text').value = text;
+            extractedText = text;
+            updateCounts(); updateBadges(); checkReady();
+            if (text.replace(/\s/g,'').length > 50) {
+                showToast(`✅ VLM OCR complete! ${text.length} chars extracted.`);
+                await runFullPipeline();
+            } else {
+                showToast(`⚠️ VLM OCR extracted limited text (${text.length} chars).`);
+                addChatMessage('ai', `⚠️ VLM OCR extracted only ${text.length} chars.`);
+            }
+        } catch (err) {
+            showToast('❌ PDF processing failed: ' + err.message);
+            addChatMessage('ai', `❌ PDF processing failed: ${err.message}`);
+        }
+        event.target.value = '';
+    }
+
+    function loadIPFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target.result;
+            document.getElementById('ip-text').value = text;
+            extractedText = text;
+            updateCounts(); updateBadges(); checkReady();
+            showToast(`Loaded bill: ${file.name}`);
+            resetPipelineSteps();
+            await runFullPipeline();
+        };
+        reader.readAsText(file);
+    }
+
+    function loadPolicyFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            document.getElementById('policy-file-name').textContent = `📎 ${file.name}`;
+            document.getElementById('policy-file-info').textContent = `${(file.size/1024).toFixed(1)} KB · PDF`;
+            document.getElementById('policy-preview').style.display = 'block';
+            document.getElementById('policy-drop-zone').style.display = 'none';
+            document.getElementById('policy-badge').textContent = 'LOADING...';
+            document.getElementById('policy-badge').classList.add('has-content');
+            extractPolicyPDFText(file);
+            showToast(`Loading policy: ${file.name}`);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                document.getElementById('policy-text').value = text;
+                document.getElementById('policy-preview').style.display = 'block';
+                document.getElementById('policy-drop-zone').style.display = 'none';
+                document.getElementById('policy-badge').textContent = 'LOADED';
+                document.getElementById('policy-badge').classList.add('has-content');
+                document.getElementById('policy-char-count').textContent = text.length.toLocaleString();
+                document.getElementById('policy-file-name').textContent = `📎 ${file.name}`;
+                document.getElementById('policy-file-info').textContent = `${(file.size/1024).toFixed(1)} KB · Text`;
+                checkReady();
+                showToast(`Loaded policy: ${file.name}`);
+            };
+            reader.readAsText(file);
+        }
+    }
+
+    async function extractPolicyPDFText(file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const typedarray = new Uint8Array(e.target.result);
+                const pdfjs = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.mjs');
+                pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+                const pdf = await pdfjs.getDocument({ data: typedarray }).promise;
+                let fullText = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    fullText += content.items.map(item => item.str).join(' ') + '\n\n';
+                }
+                document.getElementById('policy-text').value = fullText.trim();
+                document.getElementById('policy-char-count').textContent = fullText.length.toLocaleString();
+                document.getElementById('policy-badge').textContent = 'LOADED';
+                document.getElementById('policy-badge').classList.add('has-content');
+                checkReady();
+                showToast(`Extracted ${pdf.numPages} pages, ${fullText.length} chars`);
+            } catch (err) {
+                showToast('PDF extraction error: ' + err.message);
+                document.getElementById('policy-badge').textContent = 'ERROR';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // ─── CHAT ─────────────────────────────────────────────────────
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+
+    function addChatMessage(type, content) {
+        const div = document.createElement('div');
+        div.className = `chat-message ${type}`;
+        const sender = type === 'user' ? '🧑 You' : '🤖 Mistral AI';
+        div.innerHTML = `<div class="sender">${sender}</div><div class="content">${content}</div>`;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        while (chatMessages.children.length > 50) chatMessages.removeChild(chatMessages.firstChild);
+    }
+    function clearChat() { chatMessages.innerHTML = ''; addChatMessage('ai', '🧹 Chat cleared. Ready!'); }
+
+    async function askQuestion(question) {
+        if (!parsedBillData) { addChatMessage('ai', '⚠️ Please parse a bill first.'); return; }
+        if (!document.getElementById('apiKeyInput').value.trim()) { addChatMessage('ai', '⚠️ Enter API key.'); return; }
+        const policyText = document.getElementById('policy-text').value.trim();
+        addChatMessage('user', question);
+        document.getElementById('sendChatBtn').disabled = true;
+        try {
+            const chargesSummary = (parsedBillData.charges || []).map(c => 
+                `- ${c.description}${c.code ? ' ('+c.code+')' : ''}: HK$ ${c.amount.toFixed(2)}`
+            ).join('\n');
+            const context = `
+HOSPITAL: ${parsedBillData.hospital || 'Unknown'}
+PATIENT: ${parsedBillData.patientName || 'Unknown'}
+BILL NUMBER: ${parsedBillData.billNumber || 'Unknown'}
+ADMISSION: ${parsedBillData.admissionDate || 'Unknown'}
+DISCHARGE: ${parsedBillData.dischargeDate || 'Unknown'}
+DEPOSIT PAID: ${parsedBillData.depositPaid !== null ? 'HK$ '+parsedBillData.depositPaid.toFixed(2) : 'Unknown'}
+GRAND TOTAL: ${parsedBillData.grandTotal !== null ? 'HK$ '+parsedBillData.grandTotal.toFixed(2) : 'Unknown'}
+BALANCE DUE: ${parsedBillData.balanceDue !== null ? 'HK$ '+parsedBillData.balanceDue.toFixed(2) : 'Unknown'}
+
+CHARGES:
+${chargesSummary || 'No charges found'}
+
+${policyText ? 'POLICY:\n'+policyText.substring(0,2000) : 'No policy loaded.'}
+
+Question: ${question}`;
+            const resp = await callMistralText([
+                { role: 'system', content: 'You are a helpful medical bill assistant. Answer based ONLY on the data provided. Be specific with amounts in HK$.' },
+                { role: 'user', content: context }
+            ]);
+            addChatMessage('ai', resp);
+        } catch (err) { addChatMessage('ai', `❌ ${err.message}`); }
+        finally { document.getElementById('sendChatBtn').disabled = false; document.getElementById('chatInput').focus(); }
+    }
+
+    async function testApiKey() {
+        const key = apiKeyInput.value.trim();
+        if (!key) { addChatMessage('ai', '⚠️ Enter API key.'); return; }
+        try {
+            document.getElementById('mistralStatusText').textContent = 'Testing...';
+            document.getElementById('mistralDot').className = 'dot loading';
+            const resp = await callMistralText([{ role: 'user', content: 'Say "API key is working!" and nothing else.' }]);
+            if (resp.includes('API key is working')) {
+                addChatMessage('ai', '✅ API key is valid!');
+                document.getElementById('mistralStatusText').textContent = '✅ Ready';
+                document.getElementById('mistralDot').className = 'dot ready';
+                localStorage.setItem('mistral_api_key', key);
+            } else {
+                addChatMessage('ai', `⚠️ Unexpected response: "${resp.substring(0,50)}..."`);
+            }
+        } catch (err) {
+            addChatMessage('ai', `❌ API test failed: ${err.message}`);
+            document.getElementById('mistralStatusText').textContent = '❌ Error';
+            document.getElementById('mistralDot').className = 'dot error';
+        }
+    }
+
+    // ─── UI HELPERS ──────────────────────────────────────────────
+    function updateCounts() { document.getElementById('ip-char-count').textContent = document.getElementById('ip-text').value.length.toLocaleString(); }
+    function updateBadges() {
+        const ip = document.getElementById('ip-text').value.trim();
+        const ipBadge = document.getElementById('ip-badge');
+        ipBadge.textContent = ip ? 'LOADED' : 'EMPTY';
+        ipBadge.classList.toggle('has-content', !!ip);
+    }
+    function checkReady() {
+        const ip = document.getElementById('ip-text').value.trim();
+        const policy = document.getElementById('policy-text').value.trim();
+        const hasParsed = parsedBillData && parsedBillData.charges && parsedBillData.charges.length > 0;
+        document.getElementById('validate-btn').disabled = !(ip && policy && hasParsed);
+    }
+    function clearIP() {
+        document.getElementById('ip-text').value = '';
+        extractedText = ''; cleanedText = ''; parsedBillData = null; currentCharges = [];
+        pageImages = [];
+        document.getElementById('bill-content').innerHTML = '';
+        document.getElementById('bill-preview').style.display = 'none';
+        document.getElementById('bill-drop-zone').style.display = 'block';
+        document.getElementById('hospital-badge').style.display = 'none';
+        document.getElementById('readableBill').style.display = 'none';
+        document.getElementById('result-content').style.display = 'none';
+        document.getElementById('jsonPreview').style.display = 'none';
+        document.getElementById('chargeCountBadge').style.display = 'none';
+        document.getElementById('extractionWarning').style.display = 'none';
+        document.getElementById('imagePreviewContainer').style.display = 'none';
+        document.getElementById('imagePreview').innerHTML = '';
+        resetPipelineSteps();
+        updateCounts(); updateBadges(); checkReady();
+        document.getElementById('result-dot').className = 'status-dot pending';
+        document.getElementById('result-label').textContent = 'Awaiting processing';
+        document.getElementById('result-metrics').textContent = '—';
+        validationResult = null;
+    }
+    function clearPolicy() {
+        document.getElementById('policy-text').value = '';
+        document.getElementById('policy-preview').style.display = 'none';
+        document.getElementById('policy-drop-zone').style.display = 'block';
+        document.getElementById('policy-badge').textContent = 'EMPTY';
+        document.getElementById('policy-badge').classList.remove('has-content');
+        document.getElementById('policy-char-count').textContent = '0';
+        checkReady();
+    }
+    function clearAll() { clearIP(); clearPolicy(); document.getElementById('ip-file-input').value = ''; document.getElementById('pdf-file-input').value = ''; document.getElementById('policy-file-input').value = ''; resetPipelineSteps(); showToast('Reset complete'); }
+    function copyResult() {
+        const content = document.getElementById('result-content').innerText || document.getElementById('readableBill').innerText;
+        if (content) navigator.clipboard.writeText(content).then(() => showToast('Copied!'));
+    }
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+    }
+    let toastTimer = null;
+
+    // ─── EXPORT ────────────────────────────────────────────────────
+    function exportTXT() {
+        if (!parsedBillData) { showToast('⚠️ Parse a bill first.'); return; }
+        const d = parsedBillData;
+        let txt = '========================================\nMEDICAL BILL - AI PARSED DATA\n========================================\n\n';
+        txt += `Hospital: ${d.hospital || 'N/A'}\nBill No: ${d.billNumber || 'N/A'}\nPatient: ${d.patientName || 'N/A'}\nPatient ID: ${d.patientId || 'N/A'}\n`;
+        txt += `Admission: ${d.admissionDate || 'N/A'}\nDischarge: ${d.dischargeDate || 'N/A'}\n`;
+        txt += `Deposit Paid: ${d.depositPaid !== null ? 'HK$ '+d.depositPaid.toFixed(2) : 'N/A'}\n`;
+        txt += `Grand Total: ${d.grandTotal !== null ? 'HK$ '+d.grandTotal.toFixed(2) : 'N/A'}\n`;
+        txt += `Balance Due: ${d.balanceDue !== null ? 'HK$ '+d.balanceDue.toFixed(2) : 'N/A'}\n\n`;
+        txt += '----------------------------------------\nCHARGES\n----------------------------------------\n';
+        if (d.charges) for (let i=0; i<d.charges.length; i++) {
+            const c = d.charges[i];
+            txt += `${(i+1).toString().padStart(3)}. ${c.date||'N/A'} ${c.code||'N/A'} ${c.description} HK$ ${c.amount.toFixed(2)}\n`;
+        }
+        txt += '\n========================================\n';
+        if (validationResult) {
+            txt += `VALIDATION: ${validationResult.approved ? 'APPROVED ✅' : 'REJECTED ❌'}\n`;
+            txt += `Compliance: ${Math.round(validationResult.complianceRate)}%\n`;
+            if (!validationResult.approved && validationResult.reasons.length) {
+                txt += 'Reasons:\n' + validationResult.reasons.map(r => `- ${r}`).join('\n') + '\n';
+            }
+        }
+        txt += '========================================\n';
+        downloadFile(txt, 'bill_data.txt', 'text/plain');
+        showToast('✅ TXT exported!');
+    }
+
+    function exportJSON() {
+        if (!parsedBillData) { showToast('⚠️ Parse a bill first.'); return; }
+        const out = { ...parsedBillData, validation: validationResult };
+        const json = JSON.stringify(out, null, 2);
+        downloadFile(json, 'bill_data.json', 'application/json');
+        showToast('✅ JSON exported!');
+        const preview = document.getElementById('jsonPreview');
+        preview.textContent = json;
+        preview.style.display = 'block';
+    }
+
+    function toggleJSONPreview() {
+        const preview = document.getElementById('jsonPreview');
+        if (preview.style.display === 'block') { preview.style.display = 'none'; }
+        else if (parsedBillData) { preview.textContent = JSON.stringify({ ...parsedBillData, validation: validationResult }, null, 2); preview.style.display = 'block'; }
+        else showToast('⚠️ Parse a bill first.');
+    }
+
+    function downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // ─── DRAG & DROP ─────────────────────────────────────────────
+    function onBillDragOver(e) { e.preventDefault(); document.getElementById('bill-drop-zone').classList.add('dragging'); }
+    function onBillDragLeave(e) { e.preventDefault(); document.getElementById('bill-drop-zone').classList.remove('dragging'); }
+    function onBillDrop(e) {
+        e.preventDefault(); document.getElementById('bill-drop-zone').classList.remove('dragging');
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            loadPDFFile({ target: { files: [file] } });
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            const text = ev.target.result;
+            document.getElementById('ip-text').value = text;
+            extractedText = text;
+            updateCounts(); updateBadges(); checkReady();
+            showToast(`Loaded bill: ${file.name}`);
+            resetPipelineSteps();
+            await runFullPipeline();
+        };
+        reader.readAsText(file);
+    }
+    function onPolicyDragOver(e) { e.preventDefault(); document.getElementById('policy-drop-zone').classList.add('dragging'); }
+    function onPolicyDragLeave(e) { e.preventDefault(); document.getElementById('policy-drop-zone').classList.remove('dragging'); }
+    function onPolicyDrop(e) {
+        e.preventDefault(); document.getElementById('policy-drop-zone').classList.remove('dragging');
+        if (e.dataTransfer.files[0]) loadPolicyFile({ target: { files: [e.dataTransfer.files[0]] } });
+    }
+
+    // ─── INIT ─────────────────────────────────────────────────────
+    document.getElementById('ip-text').addEventListener('input', () => { updateCounts(); updateBadges(); checkReady(); });
+    document.getElementById('policy-text').addEventListener('input', () => {
+        document.getElementById('policy-char-count').textContent = document.getElementById('policy-text').value.length.toLocaleString();
+        checkReady();
+    });
+    sendChatBtn.addEventListener('click', () => { const msg = chatInput.value.trim(); if (msg) { askQuestion(msg); chatInput.value = ''; } });
+    chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatBtn.click(); } });
+
+    // Expose
+    window.loadIPFile = loadIPFile; window.loadPDFFile = loadPDFFile; window.loadPolicyFile = loadPolicyFile;
+    window.onBillDragOver = onBillDragOver; window.onBillDragLeave = onBillDragLeave; window.onBillDrop = onBillDrop;
+    window.onPolicyDragOver = onPolicyDragOver; window.onPolicyDragLeave = onPolicyDragLeave; window.onPolicyDrop = onPolicyDrop;
+    window.runFullPipeline = runFullPipeline; window.runVLMOnly = runVLMOnly; window.validate = validate;
+    window.clearIP = clearIP; window.clearPolicy = clearPolicy; window.clearAll = clearAll; window.copyResult = copyResult;
+    window.askQuestion = askQuestion; window.testApiKey = testApiKey; window.clearChat = clearChat;
+    window.exportTXT = exportTXT; window.exportJSON = exportJSON; window.toggleJSONPreview = toggleJSONPreview;
+
+    // Load saved key
+    const saved = localStorage.getItem('mistral_api_key');
+    if (saved) { apiKeyInput.value = saved; document.getElementById('mistralStatusText').textContent = '✅ Key loaded'; document.getElementById('mistralDot').className = 'dot ready'; }
+
+    resetPipelineSteps(); checkReady();
+    showToast('🏥 VLM OCR Bill Parser ready! Upload a bill & policy.');
+</script>
+</body>
+</html>
