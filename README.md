@@ -1,36 +1,54 @@
-# 🏥 LeapStack AI Claims 
+# 🏥 LeapStack AI Claims
 
-> VLM-Powered Medical Bill Validation & Adjudication System
+> VLM-Powered Medical Bill Validation System
 
 ## 📋 Overview
 
-LeapStack AI Claims is a web-based application that uses Mistral AI's Vision Language Model (VLM) to automatically extract, parse, and validate medical bills against insurance policy contracts. The system uses OCR technology to read PDF documents, AI to parse medical charges, and automated validation to check compliance with policy limits.
+A complete medical bill validation system that uses Mistral AI's Vision Language Model (VLM) to extract, parse, and validate medical bills against insurance policies.
 
-### Key Features
+## ✨ Features
 
-- **📄 VLM OCR Extraction** - Uses Mistral Pixtral-12B to extract text from medical bill PDFs
-- **🧠 AI-Powered Parsing** - Automatically extracts patient info, charges, totals, and more
-- **✅ Policy Validation** - Compares charges against policy limits and generates compliance reports
-- **💬 Interactive Chat** - Ask questions about the bill using Mistral AI assistant
-- **📊 Export Capabilities** - Export parsed data as TXT or JSON
-- **🔒 Privacy-First** - Your API key and documents stay in your browser (no server storage)
+- **VLM OCR** - Extract text from PDF medical bills using Mistral Pixtral-12B
+- **AI Parsing** - Convert bill text to structured data (patient info, charges, totals)
+- **Policy Validation** - Automatically check charges against policy limits
+- **Policy Management** - Create, upload (PDF), and manage insurance policies
+- **MongoDB Storage** - Persist policies and bill data
+- **Interactive Chat** - Ask AI questions about the bill
+- **Export Results** - Download as TXT or JSON
 
-## 🚀 Demo
+## 🛠️ Tech Stack
 
-*https://vlm-medical-bill-validator-git-main-leapstack.vercel.app/*
+| Component | Technology |
+|-----------|------------|
+| Backend | Node.js + Express |
+| Database | MongoDB (Mongoose) |
+| Frontend | HTML/CSS/JS (Single Page) |
+| AI Models | Mistral Pixtral-12B, Mistral Small/Medium/Large |
+| PDF Processing | PDF.js |
 
-## 📦 Installation
+## 🚀 Quick Start
 
-### Quick Deploy (Vercel)
+### Prerequisites
 
-1. **Clone or download this repository**
+- Node.js (v20+)
+- MongoDB (local or cloud)
+- Mistral API key
 
-2. **Deploy to Vercel** (one-click):
-   - Go to [Vercel](https://vercel.com/new)
-   - Drag and drop your project folder
-   - Click "Deploy"
+### Installation
 
-3. **Or use Vercel CLI**:
 ```bash
-npm install -g vercel
-vercel
+# Clone the repository
+git clone <repo-url>
+cd leapstack-ai-claims
+
+# Install dependencies
+npm install
+
+# Create .env file
+echo "MONGODB_URI=mongodb://localhost:27017/leapstack_claims" > .env
+
+# Start MongoDB (if using local)
+mongod
+
+# Run the application
+npm run dev
