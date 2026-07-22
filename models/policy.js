@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const policySchema = new mongoose.Schema({
+const PolicySchema = new mongoose.Schema({
   companyId: {
     type: String,
     required: true,
@@ -15,17 +15,25 @@ const policySchema = new mongoose.Schema({
     required: true
   },
   extractedText: {
-    type: String,
-    default: '' // Store the raw extracted text from PDF
+    type: String
   },
   fileInfo: {
     fileName: String,
     fileSize: Number,
     fileType: String,
-    uploadedAt: Date
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
-}, {
-  timestamps: true
 });
 
-module.exports = mongoose.model('Policy', policySchema);
+module.exports = mongoose.model('Policy', PolicySchema);
