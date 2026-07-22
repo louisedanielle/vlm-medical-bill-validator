@@ -788,8 +788,18 @@ const AUTH = {
         body: JSON.stringify({ companyId, companyName, password })
       });
       const data = await response.json();
-      return data;
+      
+      // Check if the response was successful
+      if (!response.ok) {
+        return { 
+          success: false, 
+          error: data.error || 'Signup failed' 
+        };
+      }
+      
+      return { success: true, ...data };
     } catch (error) {
+      console.error('Signup network error:', error);
       return { success: false, error: 'Network error. Please try again.' };
     }
   },
