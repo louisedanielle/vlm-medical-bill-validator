@@ -446,19 +446,6 @@
           <label>🏢 Company ID</label>
           <input type="text" id="companyIdInput" placeholder="e.g. acme-hospital" value="demo-001" />
         </div>
-        <div class="form-group">
-          <label>🔑 Mistral API Key</label>
-          <input type="password" id="apiKeyInput" placeholder="Enter your Mistral API key" />
-        </div>
-        <div class="form-group">
-          <label>🤖 Model</label>
-          <select id="modelSelect">
-            <option value="pixtral-12b-2409">Pixtral-12B (VLM - Best for OCR)</option>
-            <option value="mistral-small-latest">Mistral Small</option>
-            <option value="mistral-medium-latest">Mistral Medium</option>
-            <option value="mistral-large-latest">Mistral Large</option>
-          </select>
-        </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
           <button class="btn btn-mistral" id="testApiBtn">Test API Key</button>
           <button class="btn btn-primary" id="saveSetupBtn">💾 Save & Continue</button>
@@ -781,28 +768,17 @@ document.addEventListener('click', function(e) {
 // ─── API KEY / SETUP ──────────────────────────────────────────
 let setupComplete = false;
 
-function getApiKey() { 
-  const main = document.getElementById('apiKeyInput').value.trim();
-  if (main) return main;
-  return document.getElementById('chatApiKeyInput').value.trim();
-}
-function getModel() { 
-  const main = document.getElementById('modelSelect').value;
-  if (main) return main;
-  return document.getElementById('chatModelSelect').value;
-}
-
 function checkSetupComplete() {
-  const key = getApiKey();
   const company = document.getElementById('companyIdInput').value.trim();
-  setupComplete = !!(key && company);
+  setupComplete = !!company;
   document.getElementById('navPolicy').disabled = !setupComplete;
   document.getElementById('navBill').disabled = !setupComplete;
+  
   if (!setupComplete) {
-    document.getElementById('setupStatus').textContent = '⚠️ Please enter both Company ID and API key.';
+    document.getElementById('setupStatus').textContent = '⚠️ Please enter a Company ID.';
     document.getElementById('setupStatus').style.color = 'var(--yellow)';
   } else {
-    document.getElementById('setupStatus').textContent = '✅ Setup complete. You can now access Policies and Bill Validation.';
+    document.getElementById('setupStatus').textContent = '✅ Setup complete! You can access Policies and Bill Validation.';
     document.getElementById('setupStatus').style.color = 'var(--green)';
   }
   return setupComplete;
@@ -1186,51 +1162,89 @@ let pageImages = [];
 let validationResult = null;
 
 // ─── MISTRAL HELPERS ──────────────────────────────────────────
-async function callMistralText(messages, keyOverride = null) {
-  const key = keyOverride || getApiKey();
-  if (!key) throw new Error('Please enter your Mistral API key');
-  const model = getModel();
-  const resp = await fetch('https://api.mistral.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-    body: JSON.stringify({ model, messages, temperature: 0.1, max_tokens: 4096, top_p: 0.95 })
-  });
-  if (!resp.ok) {
-    let msg = `API Error (${resp.status})`;
-    try { const d = await resp.json(); msg = d.error?.message || msg; } catch(e) {}
-    throw new Error(msg);
+async function callMistralText(messages, model = null) {
+  try {
+    const response = await fetch(`${API.baseUrl}/mistral/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, model })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Mistral API request failed');
+    }
+    
+    const data = await response.json();
+    return data.choices[0].message.content || '';
+  } catch (error) {
+    console.error('Mistral API Error:', error);
+    throw error;
   }
-  const data = await resp.json();
-  return data.choices[0].message.content || '';
 }
 
 async function callVLMOCR(imageData, pageNum, totalPages) {
-  const key = getApiKey();
-  if (!key) throw new Error('Please enter your Mistral API key');
-  const base64Image = imageData.split(',')[1];
-  const resp = await fetch('https://api.mistral.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-    body: JSON.stringify({
-      model: 'pixtral-12b-2409',
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: `Extract ALL text from this medical bill page (${pageNum}/${totalPages}). Return ONLY the text content.` },
-          { type: 'image_url', image_url: `data:image/jpeg;base64,${base64Image}` }
-        ]
-      }],
-      max_tokens: 4096,
-      temperature: 0.1
-    })
-  });
-  if (!resp.ok) {
-    let msg = `API Error (${resp.status})`;
-    try { const d = await resp.json(); msg = d.error?.message || msg; } catch(e) {}
-    throw new Error(msg);
+  try {
+    const response = await fetch(`${API.baseUrl}/mistral/vlm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData, pageNum, totalPages })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'VLM API request failed');
+    }
+    
+    const data = await response.json();
+    return data.choices[0].message.content || '';
+  } catch (error) {
+    console.error('VLM API Error:', error);
+    throw error;
   }
-  const data = await resp.json();
-  return data.choices[0].message.content || '';
+}
+
+// ─── Clean function using backend ────────────────────────────
+async function cleanWithAI(text) {
+  try {
+    const response = await fetch(`${API.baseUrl}/mistral/clean`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Clean API failed');
+    }
+    
+    const data = await response.json();
+    return data.cleanedText;
+  } catch (error) {
+    console.error('Clean API Error:', error);
+    throw error;
+  }
+}
+
+// ─── Parse function using backend ────────────────────────────
+async function parseWithAI(text) {
+  try {
+    const response = await fetch(`${API.baseUrl}/mistral/parse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Parse API failed');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Parse API Error:', error);
+    throw error;
+  }
 }
 
 async function loadPDFJS() {
