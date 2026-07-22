@@ -764,6 +764,32 @@
 </div>
 
 <script>
+function safeGetElement(id) {
+  const el = document.getElementById(id);
+  if (!el) {
+    console.warn(`Element with id '${id}' not found`);
+  }
+  return el;
+}
+
+function safeSetText(id, text) {
+  const el = safeGetElement(id);
+  if (el) {
+    el.textContent = text;
+    return true;
+  }
+  return false;
+}
+
+function safeSetDisplay(id, display) {
+  const el = safeGetElement(id);
+  if (el) {
+    el.style.display = display;
+    return true;
+  }
+  return false;
+}
+
 // ─── AUTH SYSTEM ──────────────────────────────────────────────
 const AUTH = {
   getSession() {
@@ -1236,37 +1262,55 @@ async function callMistralText(messages, model = null) {
 // ─── POLICY VIEW ──────────────────────────────────────────────
 async function renderPolicyList() {
   const container = document.getElementById('policyList');
-  const policies = await DB.getPolicies();
-  document.getElementById('policyCountBadge').textContent = policies.length + ' policies';
   
-  if (policies.length === 0) {
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;">No policies saved yet.</div>';
+  // ✅ Check if container exists
+  if (!container) {
+    console.warn('Policy list container not found');
     return;
   }
   
-  let html = '';
-  policies.forEach(p => {
-    const policyId = p._id || p.id;
-    const hasExtracted = p.extractedText && p.extractedText.length > 0;
-    const fileInfo = p.fileInfo || {};
+  try {
+    const policies = await DB.getPolicies();
+    const badge = document.getElementById('policyCountBadge');
     
-    html += `<div class="policy-item">
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <span class="name">📜 ${p.name}</span>
-        <span style="font-size:8px;color:var(--text-muted);">
-          ${p.text.length} chars
-          ${hasExtracted ? ` · 📄 Extracted: ${p.extractedText.length} chars` : ''}
-          ${fileInfo.fileName ? ` · ${fileInfo.fileName}` : ''}
-        </span>
-      </div>
-      <div style="display:flex;gap:4px;">
-        ${hasExtracted ? `<button class="btn btn-secondary btn-sm" onclick="viewExtractedText('${policyId}')">👁️ View</button>` : ''}
-        <button class="btn btn-secondary btn-sm" onclick="loadPolicyToForm('${policyId}')">📂 Load</button>
-        <button class="btn btn-secondary btn-sm" style="color:var(--red);" onclick="deletePolicy('${policyId}')">✕</button>
-      </div>
-    </div>`;
-  });
-  container.innerHTML = html;
+    if (badge) {
+      badge.textContent = policies.length + ' policies';
+    }
+    
+    if (policies.length === 0) {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;">No policies saved yet.</div>';
+      return;
+    }
+    
+    let html = '';
+    policies.forEach(p => {
+      const policyId = p._id || p.id;
+      const hasExtracted = p.extractedText && p.extractedText.length > 0;
+      const fileInfo = p.fileInfo || {};
+      
+      html += `<div class="policy-item">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span class="name">📜 ${p.name}</span>
+          <span style="font-size:8px;color:var(--text-muted);">
+            ${p.text.length} chars
+            ${hasExtracted ? ` · 📄 Extracted: ${p.extractedText.length} chars` : ''}
+            ${fileInfo.fileName ? ` · ${fileInfo.fileName}` : ''}
+          </span>
+        </div>
+        <div style="display:flex;gap:4px;">
+          ${hasExtracted ? `<button class="btn btn-secondary btn-sm" onclick="viewExtractedText('${policyId}')">👁️ View</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="loadPolicyToForm('${policyId}')">📂 Load</button>
+          <button class="btn btn-secondary btn-sm" style="color:var(--red);" onclick="deletePolicy('${policyId}')">✕</button>
+        </div>
+      </div>`;
+    });
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('Failed to render policy list:', error);
+    if (container) {
+      container.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;">❌ Failed to load policies</div>';
+    }
+  }
 }
 
 function viewExtractedText(id) {
@@ -1413,26 +1457,40 @@ let selectedPolicyIds = [];
 
 async function renderPolicyChecklist() {
   const container = document.getElementById('policyChecklist');
-  const policies = await DB.getPolicies();
   
-  if (policies.length === 0) {
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;text-align:center;">No policies available. Go to Policies tab to create one.</div>';
+  if (!container) {
+    console.warn('Policy checklist container not found');
     return;
   }
   
-  let html = '';
-  policies.forEach(p => {
-    const policyId = p._id || p.id;
-    const isChecked = selectedPolicyIds.includes(policyId);
-    html += `<div class="policy-select-item ${isChecked ? 'selected' : ''}" onclick="togglePolicy('${policyId}')">
-      <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); togglePolicy('${policyId}')" />
-      <span class="policy-name">📜 ${p.name}</span>
-      <span class="policy-chars">${p.text.length} chars</span>
-    </div>`;
-  });
-  container.innerHTML = html;
-  
-  updateSelectedPoliciesBadge();
+  try {
+    const policies = await DB.getPolicies();
+    
+    if (policies.length === 0) {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;text-align:center;">No policies available. Go to Policies tab to create one.</div>';
+      return;
+    }
+    
+    let html = '';
+    policies.forEach(p => {
+      const policyId = p._id || p.id;
+      const isChecked = selectedPolicyIds.includes(policyId);
+      html += `<div class="policy-select-item ${isChecked ? 'selected' : ''}" onclick="togglePolicy('${policyId}')">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); togglePolicy('${policyId}')" />
+        <span class="policy-name">📜 ${p.name}</span>
+        <span class="policy-chars">${p.text.length} chars</span>
+      </div>`;
+    });
+    container.innerHTML = html;
+    
+    // ✅ Only update badge if the function exists
+    updateSelectedPoliciesBadge();
+  } catch (error) {
+    console.error('Failed to render policy checklist:', error);
+    if (container) {
+      container.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;">❌ Failed to load policies</div>';
+    }
+  }
 }
 
 function togglePolicy(id) {
@@ -1446,8 +1504,16 @@ function togglePolicy(id) {
 }
 
 function updateSelectedPoliciesBadge() {
-  document.getElementById('selectedPoliciesBadge').textContent = selectedPolicyIds.length + ' selected';
-  document.getElementById('selectedPoliciesDisplay').style.display = selectedPolicyIds.length > 0 ? 'block' : 'none';
+  const badge = document.getElementById('selectedPoliciesBadge');
+  const display = document.getElementById('selectedPoliciesDisplay');
+ 
+  if (badge) {
+    badge.textContent = selectedPolicyIds.length + ' selected';
+  }
+  
+  if (display) {
+    display.style.display = selectedPolicyIds.length > 0 ? 'block' : 'none';
+  }
 }
 
 document.getElementById('loadSelectedPoliciesBtn').addEventListener('click', async function() {

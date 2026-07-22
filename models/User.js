@@ -16,23 +16,9 @@ const UserSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Password is required']
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
 }, {
   timestamps: true // This automatically adds createdAt and updatedAt
-});
-
-// Pre-save middleware to update updatedAt
-UserSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
-  next();
 });
 
 // Remove password when converting to JSON

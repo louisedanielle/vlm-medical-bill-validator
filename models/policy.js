@@ -27,21 +27,9 @@ const PolicySchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
-});
-
-// Fix: Update timestamp before saving
-PolicySchema.pre('save', function(next) {
-  this.updatedAt = new Date();
-  next();
+}, {
+  timestamps: true // This automatically adds createdAt and updatedAt
 });
 
 module.exports = mongoose.model('Policy', PolicySchema);

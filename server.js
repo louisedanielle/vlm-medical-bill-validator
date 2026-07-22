@@ -127,10 +127,10 @@ app.get('/api', (req, res) => {
         delete: '/api/policies/:id (DELETE)'
       },
       mistral: {
-        clean: '/api/mistral/clean (POST)',
-        parse: '/api/mistral/parse (POST)',
-        vlm: '/api/mistral/vlm (POST)',
-        chat: '/api/mistral/chat (POST)'
+        clean: '/api/policies/mistral/clean (POST)',
+        parse: '/api/policies/mistral/parse (POST)',
+        vlm: '/api/policies/mistral/vlm (POST)',
+        chat: '/api/policies/mistral/chat (POST)'
       },
       health: '/health (GET)'
     }
@@ -151,7 +151,8 @@ try {
 
 // Use routes
 app.use('/api/auth', authRoutes);
-app.use('/api', policiesRoutes);
+// ✅ CHANGE THIS LINE - Add /policies to the mount path
+app.use('/api/policies', policiesRoutes);
 
 // ============================================
 // SERVE HTML FILE AT ROOT
