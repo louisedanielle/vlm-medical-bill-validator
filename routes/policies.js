@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Policy = require('../models/Policy');
+const Policy = require('../models/policy');
 
 // Get all policies for a company
 router.get('/company/:companyId', async (req, res) => {

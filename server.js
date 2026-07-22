@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const mongoose = require('mongoose'); 
+const mongoose = require('mongoose');
 
 dotenv.config();
 
@@ -13,13 +13,18 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/leapstack_claims')
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
 // Import routes
 const policiesRoutes = require('./routes/policies');
 
-// Use routes - this makes all routes in policies.js available
+// Use routes
 app.use(policiesRoutes);
 
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
@@ -30,19 +35,12 @@ app.get('/', (req, res) => {
     message: 'Medical Bill Validator API',
     endpoints: {
       '/api/mistral/clean': 'POST - Clean medical billing text',
-      '/api/mistral/parse': 'POST - Parse medical bill',
-      '/company/:companyId': 'GET - Get policies by company',
-      '/:id': 'GET - Get single policy'
+      '/api/mistral/parse': 'POST - Parse medical bill'
     }
   });
 });
 
-// MongoDB connection (if using)
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/medical-bills')
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });

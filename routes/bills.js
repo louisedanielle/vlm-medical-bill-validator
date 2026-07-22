@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Bill = require('../models/Bill');
+const Bill = require('../models/bill');
 
 // Save bill data
 router.post('/', async (req, res) => {
