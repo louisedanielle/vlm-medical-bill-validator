@@ -38,7 +38,7 @@ const PolicySchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp before saving
+// Fix: Update timestamp before saving
 PolicySchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
