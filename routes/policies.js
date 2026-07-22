@@ -19,11 +19,15 @@ router.post('/', async (req, res) => {
   try {
     const { companyId, name, text, extractedText, fileInfo } = req.body;
     
+    if (!companyId || !name || !text) {
+      return res.status(400).json({ error: 'Company ID, name, and text are required' });
+    }
+    
     const policyData = {
       companyId,
       name,
       text,
-      extractedText: extractedText || text, // Use extracted text or fallback to text
+      extractedText: extractedText || text,
       fileInfo: fileInfo || {}
     };
     
@@ -85,15 +89,15 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Clean policy text with AI (MOVED TO ROUTER)
-router.post('/api/mistral/clean', async (req, res) => {
+// Clean policy text with AI
+router.post('/mistral/clean', async (req, res) => {
   try {
     const { text } = req.body;
     
     if (!text) {
       return res.status(400).json({ error: 'Text is required' });
     }
-
+    
     const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -123,8 +127,8 @@ router.post('/api/mistral/clean', async (req, res) => {
   }
 });
 
-// Parse bill with AI (MOVED TO ROUTER)
-router.post('/api/mistral/parse', async (req, res) => {
+// Parse bill with AI
+router.post('/mistral/parse', async (req, res) => {
   try {
     const { text } = req.body;
     

@@ -1,32 +1,21 @@
 const mongoose = require('mongoose');
 
-const PolicySchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
   companyId: {
     type: String,
     required: true,
+    unique: true,
     index: true,
     trim: true
   },
-  name: {
+  companyName: {
     type: String,
     required: true,
     trim: true
   },
-  text: {
+  password: {
     type: String,
     required: true
-  },
-  extractedText: {
-    type: String
-  },
-  fileInfo: {
-    fileName: String,
-    fileSize: Number,
-    fileType: String,
-    uploadDate: {
-      type: Date,
-      default: Date.now
-    }
   },
   createdAt: {
     type: Date,
@@ -38,10 +27,10 @@ const PolicySchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp before saving
-PolicySchema.pre('save', function(next) {
+// Update the updatedAt timestamp before saving
+UserSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
 });
 
-module.exports = mongoose.model('Policy', PolicySchema);
+module.exports = mongoose.model('User', UserSchema);

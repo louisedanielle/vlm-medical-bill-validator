@@ -19,8 +19,8 @@
       --font-ui:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
       --radius:8px; --radius-lg:12px;
     }
-    body { background:var(--bg-deep); color:var(--text-primary); font-family:var(--font-ui); min-height:100vh; padding:20px; }
-    .app { max-width:1400px; margin:0 auto; }
+    body { background:var(--bg-deep); color:var(--text-primary); font-family:var(--font-ui); min-height:100vh; padding:20px; display:flex; align-items:center; justify-content:center; }
+    .app { max-width:1400px; margin:0 auto; width:100%; }
     .view { display:none; }
     .view.active { display:block; }
     header {
@@ -50,7 +50,11 @@
     .btn-sm { padding:4px 12px; font-size:9px; border-radius:4px; }
     .btn-success { background:var(--green); color:#000; }
     .btn-success:hover:not(:disabled) { background:#2ecc71; transform:translateY(-1px); }
-    .panel { background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; display:flex; flex-direction:column; }
+    .btn-danger { background:var(--red); color:#fff; }
+    .btn-danger:hover:not(:disabled) { background:#dc2626; transform:translateY(-1px); }
+    .panel {
+      background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; display:flex; flex-direction:column;
+    }
     .panel-header { background:var(--bg-surface); padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap; }
     .panel-label { font-family:var(--font-mono); font-size:11px; font-weight:600; letter-spacing:0.08em; color:var(--text-muted); text-transform:uppercase; }
     .panel-badge { font-family:var(--font-mono); font-size:9px; padding:2px 8px; border-radius:3px; background:var(--bg-deep); border:1px solid var(--border); color:var(--text-muted); }
@@ -413,179 +417,315 @@
       font-size: 10px;
     }
     .selected-policy-tag .remove:hover { color: var(--red); }
+
+    /* Auth Styles */
+    .auth-container {
+      max-width: 440px;
+      margin: 40px auto;
+      padding: 32px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .auth-container .auth-title {
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .auth-container .auth-title span { color: var(--accent); }
+    .auth-container .auth-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .auth-container .auth-toggle {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .auth-container .auth-toggle a {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .auth-container .auth-toggle a:hover { text-decoration: underline; }
+    .auth-container .form-group { margin-bottom: 16px; }
+    .auth-container .form-group label { font-size: 11px; color: var(--text-secondary); text-transform: none; letter-spacing: 0; }
+    .auth-container .form-group input { padding: 10px 14px; font-size: 13px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); width: 100%; }
+    .auth-container .form-group input:focus { border-color: var(--accent); outline: none; }
+    .auth-container .btn { width: 100%; justify-content: center; padding: 12px; font-size: 13px; }
+    .auth-container .auth-error {
+      background: rgba(239,68,68,0.15);
+      border: 1px solid var(--red);
+      color: var(--red);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .auth-container .auth-success {
+      background: rgba(34,197,94,0.15);
+      border: 1px solid var(--green);
+      color: var(--green);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+    .user-badge .logout-btn {
+      background: none;
+      border: none;
+      color: var(--red);
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--font-mono);
+    }
+    .user-badge .logout-btn:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
 <div class="app" id="app">
-  <header>
-    <div class="logo-area"><div class="logo-icon">🏥</div><span class="logo-text">Leapstack<span> AI Claims</span></span></div>
-    <div class="header-sep"></div>
-    <span style="font-size:12px;color:var(--text-muted)">VLM OCR · Policy Validation · Automated Adjudication</span>
-    <div class="header-info">
-      <div class="server-status" id="serverStatus">
-        <span class="dot offline" id="serverDot"></span>
-        <span id="serverStatusText">Connecting...</span>
+  
+  <!-- ========== AUTH VIEW ========== -->
+  <div id="viewAuth" class="view active">
+    <div class="auth-container">
+      <div class="auth-title">🏥 Leapstack<span> AI Claims</span></div>
+      <div class="auth-subtitle">VLM-Powered Medical Bill Validation</div>
+      
+      <div id="authError" class="auth-error"></div>
+      <div id="authSuccess" class="auth-success"></div>
+      
+      <!-- Sign In Form -->
+      <div id="signInForm">
+        <div class="form-group">
+          <label>👤 Company ID</label>
+          <input type="text" id="loginCompanyId" placeholder="Enter your Company ID" />
+        </div>
+        <div class="form-group">
+          <label>🔑 Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password" />
+        </div>
+        <button class="btn btn-primary" id="signInBtn">Sign In</button>
+        <div class="auth-toggle">
+          Don't have an account? <a id="showSignUp">Sign Up</a>
+        </div>
       </div>
-      <span class="file-info" id="status-info">📋 Ready</span>
-    </div>
-  </header>
-
-  <!-- Navigation tabs -->
-  <div class="view-nav" id="navTabs">
-    <button class="btn active-tab" data-view="viewSetup">🔐 Setup</button>
-    <button class="btn" data-view="viewPolicy" id="navPolicy" disabled>📜 Policies</button>
-    <button class="btn" data-view="viewBill" id="navBill" disabled>📄 Bill Validation</button>
-  </div>
-
-  <!-- VIEW: Setup -->
-  <div id="viewSetup" class="view active">
-    <div class="panel" style="max-width:600px; margin:0 auto;">
-      <div class="panel-header"><span class="panel-label">🔐 API & Company Setup</span></div>
-      <div class="panel-body">
+      
+      <!-- Sign Up Form -->
+      <div id="signUpForm" style="display:none;">
         <div class="form-group">
-          <label>🏢 Company ID</label>
-          <input type="text" id="companyIdInput" placeholder="e.g. acme-hospital" value="demo-001" />
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
-          <button class="btn btn-mistral" id="testApiBtn">Test API Key</button>
-          <button class="btn btn-primary" id="saveSetupBtn">💾 Save & Continue</button>
-        </div>
-        <div id="setupStatus" style="margin-top:8px; font-size:11px; color:var(--text-muted); font-family:var(--font-mono);"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VIEW: Policy Management -->
-  <div id="viewPolicy" class="view">
-    <div class="panel">
-      <div class="panel-header"><span class="panel-label">📜 Policy Manager</span><span class="panel-badge" id="policyCountBadge">0 policies</span></div>
-      <div class="panel-body">
-        <div class="form-group">
-          <label>📄 Policy Name</label>
-          <input type="text" id="policyNameInput" placeholder="e.g. Standard Hospital Contract 2025" />
+          <label>🏢 Company Name</label>
+          <input type="text" id="signupCompanyName" placeholder="e.g. Acme Hospital" />
         </div>
         <div class="form-group">
-          <label>📝 Policy Text (or upload PDF below)</label>
-          <textarea id="policyTextInput" rows="4" placeholder="Paste policy text or upload PDF..."></textarea>
+          <label>👤 Company ID</label>
+          <input type="text" id="signupCompanyId" placeholder="Choose a Company ID (e.g. acme-001)" />
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-          <button class="btn btn-primary" id="savePolicyBtn">💾 Save Policy</button>
-          <button class="btn btn-secondary" id="clearPolicyFormBtn">✕ Clear</button>
-          <button class="btn btn-secondary" onclick="document.getElementById('policyPdfInput').click()">📎 Upload PDF Policy</button>
-          <input type="file" id="policyPdfInput" style="display:none" accept=".pdf" onchange="loadPolicyPDF(event)" />
+        <div class="form-group">
+          <label>🔑 Password</label>
+          <input type="password" id="signupPassword" placeholder="Create a password (min 6 characters)" />
         </div>
-        <div id="policyList" class="policy-list"></div>
+        <div class="form-group">
+          <label>🔑 Confirm Password</label>
+          <input type="password" id="signupConfirmPassword" placeholder="Confirm your password" />
+        </div>
+        <button class="btn btn-primary" id="signUpBtn">Sign Up</button>
+        <div class="auth-toggle">
+          Already have an account? <a id="showSignIn">Sign In</a>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- VIEW: Bill Validation -->
-  <div id="viewBill" class="view">
-    <div class="grid">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-label">📄 MEDICAL BILL</span>
-          <span class="panel-badge" id="ip-badge">EMPTY</span>
-          <span class="panel-badge" id="policyRefBadge" style="display:none;">📜</span>
-          <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;">
-            <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('ip-file-input').click()">📎 Upload TXT</button>
-            <button class="btn btn-pdf" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('pdf-file-input').click()">📄 Upload PDF</button>
-            <input type="file" id="ip-file-input" style="display:none" accept=".txt,.md,.html,.htm" onchange="loadIPFile(event)" />
-            <input type="file" id="pdf-file-input" style="display:none" accept=".pdf" onchange="loadPDFFile(event)" />
-          </div>
+  <!-- ========== MAIN APP VIEW (protected) ========== -->
+  <div id="viewApp" style="display:none;">
+    <header>
+      <div class="logo-area"><div class="logo-icon">🏥</div><span class="logo-text">Leapstack<span> AI Claims</span></span></div>
+      <div class="header-sep"></div>
+      <span style="font-size:12px;color:var(--text-muted)">VLM OCR · Policy Validation · Automated Adjudication</span>
+      <div class="header-info">
+        <div class="user-badge">
+          <span id="currentUserDisplay">👤 demo-001</span>
+          <button class="logout-btn" id="logoutBtn">🚪 Logout</button>
         </div>
-        <div class="panel-body">
-          <div class="drop-zone" id="bill-drop-zone" onclick="document.getElementById('ip-file-input').click()"
-               ondragover="onBillDragOver(event)" ondragleave="onBillDragLeave(event)" ondrop="onBillDrop(event)">
-            <span class="icon">📄</span>
-            <div class="title">Drop your medical bill here</div>
-            <div class="hint">or click to browse (.txt, .pdf)</div>
-          </div>
-          <div class="pipeline-steps" id="pipelineSteps">
-            <span class="step" id="stepPdf">📄PDF</span><span class="step arrow">→</span>
-            <span class="step" id="stepImage">🖼️Image</span><span class="step arrow">→</span>
-            <span class="step" id="stepVlm">👁️VLM OCR</span><span class="step arrow">→</span>
-            <span class="step" id="stepClean">🧹Clean</span><span class="step arrow">→</span>
-            <span class="step" id="stepParse">🧠Parse</span><span class="step arrow">→</span>
-            <span class="step" id="stepValidate">✅Validate</span>
-          </div>
-          <div id="bill-preview" style="display:none;margin-top:10px;">
-            <div id="bill-content" style="background:var(--bg-deep);border-radius:var(--radius);padding:12px;border:1px solid var(--border);font-family:var(--font-mono);font-size:11px;"></div>
-            <div style="margin-top:8px;"><textarea id="ip-text" placeholder="Raw bill text will appear here..." style="height:200px;width:100%;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:var(--font-mono);font-size:12px;color:var(--text-primary);resize:vertical;"></textarea></div>
-          </div>
-          <div id="pdf-progress" style="display:none;background:var(--bg-deep);border-radius:var(--radius);padding:8px 12px;margin-top:6px;border:1px solid var(--border);font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);">
-            <span id="pdfStatus">📄 Processing...</span>
-            <div style="height:4px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden;"><div class="fill" id="pdfProgressBar" style="height:100%;background:#1a5a9e;transition:width 0.3s ease;width:0%;"></div></div>
-          </div>
-          <div id="extractionWarning" style="display:none;background:rgba(234,179,8,0.1);border:1px solid var(--yellow);border-radius:var(--radius);padding:10px 12px;margin-top:8px;font-size:10px;color:var(--text-secondary);font-family:var(--font-mono);">
-            <strong>⚠️ VLM OCR extraction may be incomplete</strong><br><span id="extractionMessage">Try adjusting the image quality or uploading a clearer document.</span>
-          </div>
-          <div id="imagePreviewContainer" style="display:none;margin-top:8px;">
-            <div style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:4px;">📷 Extracted Pages:</div>
-            <div class="image-preview" id="imagePreview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;"></div>
-          </div>
+        <span style="width:1px;height:20px;background:var(--border);"></span>
+        <div class="server-status" id="serverStatus">
+          <span class="dot offline" id="serverDot"></span>
+          <span id="serverStatusText">Connecting...</span>
         </div>
-        <div style="display:flex;padding:8px 16px;border-top:1px solid var(--border);background:var(--bg-surface);">
-          <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">Chars: <span id="ip-char-count">0</span></span>
-          <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;margin-left:auto;" onclick="clearIP()">✕ Clear</button>
-        </div>
+        <span class="file-info" id="status-info">📋 Ready</span>
       </div>
+    </header>
 
-      <!-- Multi-Select Policy Panel -->
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-label">📜 SELECT POLICIES</span>
-          <span class="panel-badge" id="selectedPoliciesBadge">0 selected</span>
-        </div>
+    <!-- Navigation tabs -->
+    <div class="view-nav" id="navTabs">
+      <button class="btn active-tab" data-view="viewSetup">🔐 Setup</button>
+      <button class="btn" data-view="viewPolicy" id="navPolicy" disabled>📜 Policies</button>
+      <button class="btn" data-view="viewBill" id="navBill" disabled>📄 Bill Validation</button>
+    </div>
+
+    <!-- VIEW: Setup -->
+    <div id="viewSetup" class="view active">
+      <div class="panel" style="max-width:600px; margin:0 auto;">
+        <div class="panel-header"><span class="panel-label">🔐 Company Setup</span></div>
         <div class="panel-body">
           <div class="form-group">
-            <label>Select policies to apply (check all that apply)</label>
-            <div id="policyChecklist" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:6px;background:var(--bg-deep);">
-              <div style="color:var(--text-muted);font-size:11px;padding:12px;text-align:center;">Loading policies...</div>
+            <label>🏢 Company ID</label>
+            <input type="text" id="companyIdInput" placeholder="e.g. acme-hospital" value="demo-001" readonly disabled />
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <button class="btn btn-primary" id="saveSetupBtn">💾 Save & Continue</button>
+          </div>
+          <div id="setupStatus" style="margin-top:8px; font-size:11px; color:var(--text-muted); font-family:var(--font-mono);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: Policy Management -->
+    <div id="viewPolicy" class="view">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-label">📜 Policy Manager</span><span class="panel-badge" id="policyCountBadge">0 policies</span></div>
+        <div class="panel-body">
+          <div class="form-group">
+            <label>📄 Policy Name</label>
+            <input type="text" id="policyNameInput" placeholder="e.g. Standard Hospital Contract 2025" />
+          </div>
+          <div class="form-group">
+            <label>📝 Policy Text (or upload PDF below)</label>
+            <textarea id="policyTextInput" rows="4" placeholder="Paste policy text or upload PDF..."></textarea>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            <button class="btn btn-primary" id="savePolicyBtn">💾 Save Policy</button>
+            <button class="btn btn-secondary" id="clearPolicyFormBtn">✕ Clear</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('policyPdfInput').click()">📎 Upload PDF Policy</button>
+            <input type="file" id="policyPdfInput" style="display:none" accept=".pdf" onchange="loadPolicyPDF(event)" />
+          </div>
+          <div id="policyList" class="policy-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: Bill Validation -->
+    <div id="viewBill" class="view">
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label">📄 MEDICAL BILL</span>
+            <span class="panel-badge" id="ip-badge">EMPTY</span>
+            <span class="panel-badge" id="policyRefBadge" style="display:none;">📜</span>
+            <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;">
+              <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('ip-file-input').click()">📎 Upload TXT</button>
+              <button class="btn btn-pdf" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('pdf-file-input').click()">📄 Upload PDF</button>
+              <input type="file" id="ip-file-input" style="display:none" accept=".txt,.md,.html,.htm" onchange="loadIPFile(event)" />
+              <input type="file" id="pdf-file-input" style="display:none" accept=".pdf" onchange="loadPDFFile(event)" />
             </div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-            <button class="btn btn-success btn-sm" id="loadSelectedPoliciesBtn">📂 Load Selected Policies</button>
-            <button class="btn btn-secondary btn-sm" id="clearSelectedPoliciesBtn">✕ Clear All</button>
+          <div class="panel-body">
+            <div class="drop-zone" id="bill-drop-zone" onclick="document.getElementById('ip-file-input').click()"
+                 ondragover="onBillDragOver(event)" ondragleave="onBillDragLeave(event)" ondrop="onBillDrop(event)">
+              <span class="icon">📄</span>
+              <div class="title">Drop your medical bill here</div>
+              <div class="hint">or click to browse (.txt, .pdf)</div>
+            </div>
+            <div class="pipeline-steps" id="pipelineSteps">
+              <span class="step" id="stepPdf">📄PDF</span><span class="step arrow">→</span>
+              <span class="step" id="stepImage">🖼️Image</span><span class="step arrow">→</span>
+              <span class="step" id="stepVlm">👁️VLM OCR</span><span class="step arrow">→</span>
+              <span class="step" id="stepClean">🧹Clean</span><span class="step arrow">→</span>
+              <span class="step" id="stepParse">🧠Parse</span><span class="step arrow">→</span>
+              <span class="step" id="stepValidate">✅Validate</span>
+            </div>
+            <div id="bill-preview" style="display:none;margin-top:10px;">
+              <div id="bill-content" style="background:var(--bg-deep);border-radius:var(--radius);padding:12px;border:1px solid var(--border);font-family:var(--font-mono);font-size:11px;"></div>
+              <div style="margin-top:8px;"><textarea id="ip-text" placeholder="Raw bill text will appear here..." style="height:200px;width:100%;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:var(--font-mono);font-size:12px;color:var(--text-primary);resize:vertical;"></textarea></div>
+            </div>
+            <div id="pdf-progress" style="display:none;background:var(--bg-deep);border-radius:var(--radius);padding:8px 12px;margin-top:6px;border:1px solid var(--border);font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);">
+              <span id="pdfStatus">📄 Processing...</span>
+              <div style="height:4px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden;"><div class="fill" id="pdfProgressBar" style="height:100%;background:#1a5a9e;transition:width 0.3s ease;width:0%;"></div></div>
+            </div>
+            <div id="extractionWarning" style="display:none;background:rgba(234,179,8,0.1);border:1px solid var(--yellow);border-radius:var(--radius);padding:10px 12px;margin-top:8px;font-size:10px;color:var(--text-secondary);font-family:var(--font-mono);">
+              <strong>⚠️ VLM OCR extraction may be incomplete</strong><br><span id="extractionMessage">Try adjusting the image quality or uploading a clearer document.</span>
+            </div>
+            <div id="imagePreviewContainer" style="display:none;margin-top:8px;">
+              <div style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:4px;">📷 Extracted Pages:</div>
+              <div class="image-preview" id="imagePreview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;"></div>
+            </div>
           </div>
-          <div id="selectedPoliciesDisplay" style="margin-top:8px;display:none;">
-            <div style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:4px;">Loaded Policies:</div>
-            <div class="selected-policies-list" id="selectedPoliciesList"></div>
+          <div style="display:flex;padding:8px 16px;border-top:1px solid var(--border);background:var(--bg-surface);">
+            <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">Chars: <span id="ip-char-count">0</span></span>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;margin-left:auto;" onclick="clearIP()">✕ Clear</button>
           </div>
-          <div style="margin-top:8px;">
-            <textarea id="policy-text" placeholder="Combined policy text will appear here..." style="height:150px;width:100%;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);resize:vertical;"></textarea>
+        </div>
+
+        <!-- Multi-Select Policy Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label">📜 SELECT POLICIES</span>
+            <span class="panel-badge" id="selectedPoliciesBadge">0 selected</span>
+          </div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label>Select policies to apply (check all that apply)</label>
+              <div id="policyChecklist" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:6px;background:var(--bg-deep);">
+                <div style="color:var(--text-muted);font-size:11px;padding:12px;text-align:center;">Loading policies...</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+              <button class="btn btn-success btn-sm" id="loadSelectedPoliciesBtn">📂 Load Selected Policies</button>
+              <button class="btn btn-secondary btn-sm" id="clearSelectedPoliciesBtn">✕ Clear All</button>
+            </div>
+            <div id="selectedPoliciesDisplay" style="margin-top:8px;display:none;">
+              <div style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:4px;">Loaded Policies:</div>
+              <div class="selected-policies-list" id="selectedPoliciesList"></div>
+            </div>
+            <div style="margin-top:8px;">
+              <textarea id="policy-text" placeholder="Combined policy text will appear here..." style="height:150px;width:100%;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);resize:vertical;"></textarea>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-      <button class="btn btn-vlm" onclick="runFullPipeline()" id="pipelineBtn">🚀 VLM OCR → AI Clean → Parse → Validate</button>
-      <button class="btn btn-secondary" onclick="runVLMOnly()" id="vlmBtn">👁️ VLM OCR Only (PDF → Text)</button>
-      <button class="btn btn-primary" id="validate-btn" onclick="validate()" disabled>🔍 Validate Against Policy</button>
-      <button class="btn btn-secondary" onclick="clearAll()">🔄 Reset All</button>
-    </div>
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn btn-vlm" onclick="runFullPipeline()" id="pipelineBtn">🚀 VLM OCR → AI Clean → Parse → Validate</button>
+        <button class="btn btn-secondary" onclick="runVLMOnly()" id="vlmBtn">👁️ VLM OCR Only (PDF → Text)</button>
+        <button class="btn btn-primary" id="validate-btn" onclick="validate()" disabled>🔍 Validate Against Policy</button>
+        <button class="btn btn-secondary" onclick="clearAll()">🔄 Reset All</button>
+      </div>
 
-    <div class="result-panel">
-      <div class="result-header">
-        <div class="result-status"><div class="status-dot pending" id="result-dot"></div><span id="result-label">Awaiting validation</span></div>
-        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
-          <span class="file-info" id="result-metrics">—</span>
-          <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="copyResult()" id="copy-result-btn" disabled>📋 Copy</button>
+      <div class="result-panel">
+        <div class="result-header">
+          <div class="result-status"><div class="status-dot pending" id="result-dot"></div><span id="result-label">Awaiting validation</span></div>
+          <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+            <span class="file-info" id="result-metrics">—</span>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="copyResult()" id="copy-result-btn" disabled>📋 Copy</button>
+          </div>
         </div>
+        <div class="result-body" id="result-body">
+          <div class="empty-result"><span class="icon">🔍</span><p>Validation results will appear here after you run the pipeline.</p></div>
+          <div id="result-content" style="display:none;"></div>
+        </div>
+        <div class="export-section">
+          <span class="label">📤 Export:</span>
+          <button class="btn btn-export btn-sm" style="background:#2e7d32;color:#fff;" onclick="exportTXT()">📄 TXT</button>
+          <button class="btn btn-export-json btn-sm" style="background:#1565c0;color:#fff;" onclick="exportJSON()">📊 JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleJSONPreview()">👁️ JSON</button>
+          <span style="font-size:8px;color:var(--text-muted);font-family:var(--font-mono);margin-left:auto;">AI-parsed data</span>
+        </div>
+        <div id="jsonPreview" class="json-output"></div>
       </div>
-      <div class="result-body" id="result-body">
-        <div class="empty-result"><span class="icon">🔍</span><p>Validation results will appear here after you run the pipeline.</p></div>
-        <div id="result-content" style="display:none;"></div>
-      </div>
-      <div class="export-section">
-        <span class="label">📤 Export:</span>
-        <button class="btn btn-export btn-sm" style="background:#2e7d32;color:#fff;" onclick="exportTXT()">📄 TXT</button>
-        <button class="btn btn-export-json btn-sm" style="background:#1565c0;color:#fff;" onclick="exportJSON()">📊 JSON</button>
-        <button class="btn btn-secondary btn-sm" onclick="toggleJSONPreview()">👁️ JSON</button>
-        <span style="font-size:8px;color:var(--text-muted);font-family:var(--font-mono);margin-left:auto;">AI-parsed data</span>
-      </div>
-      <div id="jsonPreview" class="json-output"></div>
     </div>
   </div>
 
@@ -616,16 +756,6 @@
         <input type="text" id="chatInput" placeholder="Ask about the bill..." />
         <button class="btn btn-mistral btn-sm" id="sendChatBtn">Send</button>
       </div>
-      <div class="api-config">
-        <span class="label">🔑 Key:</span>
-        <input type="password" id="chatApiKeyInput" placeholder="API key..." />
-        <select id="chatModelSelect">
-          <option value="pixtral-12b-2409">Pixtral</option>
-          <option value="mistral-small-latest">Small</option>
-          <option value="mistral-medium-latest">Medium</option>
-          <option value="mistral-large-latest">Large</option>
-        </select>
-      </div>
     </div>
     <button class="chat-drawer-handle" id="chatDrawerToggle">
       <span class="badge-dot"></span> 💬 Mistral AI
@@ -634,6 +764,208 @@
 </div>
 
 <script>
+// ─── AUTH SYSTEM ──────────────────────────────────────────────
+const AUTH = {
+  getSession() {
+    try {
+      return JSON.parse(sessionStorage.getItem('leapstack_session')) || null;
+    } catch { return null; }
+  },
+  
+  setSession(user) {
+    sessionStorage.setItem('leapstack_session', JSON.stringify(user));
+  },
+  
+  clearSession() {
+    sessionStorage.removeItem('leapstack_session');
+  },
+  
+  async signUp(companyId, password, companyName) {
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId, companyName, password })
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  },
+  
+  async signIn(companyId, password) {
+    try {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId, password })
+      });
+      const data = await response.json();
+      if (data.success) {
+        this.setSession(data.user);
+      }
+      return data;
+    } catch (error) {
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  },
+  
+  isAuthenticated() {
+    return !!this.getSession();
+  },
+  
+  getCurrentUser() {
+    return this.getSession();
+  }
+};
+
+// ─── AUTH UI ──────────────────────────────────────────────────
+function initAuth() {
+  // Check if already logged in
+  if (AUTH.isAuthenticated()) {
+    const user = AUTH.getCurrentUser();
+    showApp(user);
+    return;
+  }
+  
+  // Show auth view
+  document.getElementById('viewAuth').classList.add('active');
+  document.getElementById('viewAuth').style.display = 'block';
+  document.getElementById('viewApp').style.display = 'none';
+}
+
+// Toggle between Sign In and Sign Up
+document.getElementById('showSignUp').addEventListener('click', function(e) {
+  e.preventDefault();
+  document.getElementById('signInForm').style.display = 'none';
+  document.getElementById('signUpForm').style.display = 'block';
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authSuccess').style.display = 'none';
+});
+
+document.getElementById('showSignIn').addEventListener('click', function(e) {
+  e.preventDefault();
+  document.getElementById('signUpForm').style.display = 'none';
+  document.getElementById('signInForm').style.display = 'block';
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authSuccess').style.display = 'none';
+});
+
+document.getElementById('signUpBtn').addEventListener('click', async function() {
+  const companyName = document.getElementById('signupCompanyName').value.trim();
+  const companyId = document.getElementById('signupCompanyId').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const confirmPassword = document.getElementById('signupConfirmPassword').value;
+  
+  const errorEl = document.getElementById('authError');
+  const successEl = document.getElementById('authSuccess');
+  errorEl.style.display = 'none';
+  successEl.style.display = 'none';
+  
+  if (!companyName) { showAuthError('Please enter your company name.'); return; }
+  if (!companyId) { showAuthError('Please choose a Company ID.'); return; }
+  if (!password) { showAuthError('Please create a password.'); return; }
+  if (password !== confirmPassword) { showAuthError('Passwords do not match.'); return; }
+  
+  const result = await AUTH.signUp(companyId, password, companyName);
+  if (!result.success) {
+    showAuthError(result.error);
+    return;
+  }
+  
+  showAuthSuccess('🎉 Account created successfully! Please sign in.');
+  document.getElementById('signUpForm').style.display = 'none';
+  document.getElementById('signInForm').style.display = 'block';
+  document.getElementById('signupCompanyId').value = '';
+  document.getElementById('signupPassword').value = '';
+  document.getElementById('signupConfirmPassword').value = '';
+});
+
+// Sign In
+document.getElementById('signInBtn').addEventListener('click', async function() {
+  const companyId = document.getElementById('loginCompanyId').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  
+  const errorEl = document.getElementById('authError');
+  const successEl = document.getElementById('authSuccess');
+  errorEl.style.display = 'none';
+  successEl.style.display = 'none';
+  
+  if (!companyId) { showAuthError('Please enter your Company ID.'); return; }
+  if (!password) { showAuthError('Please enter your password.'); return; }
+  
+  const result = await AUTH.signIn(companyId, password);
+  if (!result.success) {
+    showAuthError(result.error);
+    return;
+  }
+  
+  showAuthSuccess('✅ Welcome back, ' + result.user.companyName + '!');
+  setTimeout(() => {
+    showApp(result.user);
+  }, 500);
+});
+
+// Enter key support
+document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') document.getElementById('signInBtn').click();
+});
+document.getElementById('signupConfirmPassword').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') document.getElementById('signUpBtn').click();
+});
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function showAuthSuccess(msg) {
+  const el = document.getElementById('authSuccess');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ─── SHOW MAIN APP ──────────────────────────────────────────
+function showApp(user) {
+  document.getElementById('viewAuth').classList.remove('active');
+  document.getElementById('viewAuth').style.display = 'none';
+  document.getElementById('viewApp').style.display = 'block';
+  
+  // Set company ID
+  document.getElementById('companyIdInput').value = user.companyId;
+  document.getElementById('currentUserDisplay').textContent = '👤 ' + user.companyId;
+  
+  // Setup complete
+  checkSetupComplete();
+  
+  // Show the setup view
+  document.querySelector('[data-view="viewSetup"]').click();
+  
+  // Initialize everything
+  checkServerConnection();
+  renderPolicyList();
+  renderPolicyChecklist();
+  resetPipelineSteps();
+  checkReady();
+  document.getElementById('chatDrawerWrapper').style.display = 'none';
+  showToast('🏥 Welcome, ' + (user.companyName || user.companyId) + '!');
+}
+
+// ─── LOGOUT ──────────────────────────────────────────────────
+document.getElementById('logoutBtn').addEventListener('click', function() {
+  if (confirm('Are you sure you want to logout?')) {
+    AUTH.clearSession();
+    document.getElementById('viewApp').style.display = 'none';
+    document.getElementById('viewAuth').classList.add('active');
+    document.getElementById('viewAuth').style.display = 'block';
+    document.getElementById('loginCompanyId').value = '';
+    document.getElementById('loginPassword').value = '';
+    showToast('👋 Logged out successfully.');
+  }
+});
+
 // ─── API CLIENT ────────────────────────────────────────────────
 const API = {
   baseUrl: window.location.origin + '/api',
@@ -693,6 +1025,31 @@ const API = {
   async getBills(companyId) {
     if (!companyId) return [];
     return this.request(`/bills/company/${encodeURIComponent(companyId)}`);
+  },
+
+  async cleanText(text) {
+    return this.request('/mistral/clean', {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    });
+  },
+
+  async parseBill(text) {
+    return this.request('/mistral/parse', {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    });
+  },
+
+  async vlmOCR(imageData, pageNum, totalPages) {
+    return this.request('/mistral/vlm', {
+      method: 'POST',
+      body: JSON.stringify({ imageData, pageNum, totalPages })
+    });
+  },
+
+  async health() {
+    return this.request('/health');
   }
 };
 
@@ -765,7 +1122,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// ─── API KEY / SETUP ──────────────────────────────────────────
+// ─── SETUP ──────────────────────────────────────────────────
 let setupComplete = false;
 
 function checkSetupComplete() {
@@ -784,22 +1141,13 @@ function checkSetupComplete() {
   return setupComplete;
 }
 
-document.getElementById('apiKeyInput').addEventListener('input', function() {
-  document.getElementById('chatApiKeyInput').value = this.value;
-  checkSetupComplete();
-});
-document.getElementById('chatApiKeyInput').addEventListener('input', function() {
-  document.getElementById('apiKeyInput').value = this.value;
-  checkSetupComplete();
-});
-
 // ─── NAVIGATION ───────────────────────────────────────────────
 document.querySelectorAll('[data-view]').forEach(btn => {
   btn.addEventListener('click', function() {
     const viewId = this.dataset.view;
     if (viewId === 'viewPolicy' || viewId === 'viewBill') {
       if (!setupComplete) {
-        showToast('⚠️ Please complete Setup first (Company ID & API Key).');
+        showToast('⚠️ Please complete Setup first (Company ID).');
         return;
       }
     }
@@ -830,43 +1178,28 @@ async function checkServerConnection() {
       throw new Error('Server returned error');
     }
   } catch (e) {
+    try {
+      const rootResponse = await fetch(window.location.origin);
+      if (rootResponse.ok) {
+        document.getElementById('serverDot').className = 'dot online';
+        document.getElementById('serverStatusText').textContent = '✅ Server Connected';
+        return;
+      }
+    } catch (rootError) {}
     document.getElementById('serverDot').className = 'dot offline';
-    document.getElementById('serverStatusText').textContent = '❌ Server Offline';
-    showToast('⚠️ Cannot connect to backend server. Make sure it\'s running on port 5000');
+    document.getElementById('serverStatusText').textContent = '⚠️ Server Connection Issue';
+    showToast('⚠️ Cannot connect to backend server.');
   }
 }
 
 // ─── SETUP VIEW ──────────────────────────────────────────────
-document.getElementById('testApiBtn').addEventListener('click', async function() {
-  const key = getApiKey();
-  if (!key) { showToast('⚠️ Enter API key.'); return; }
-  try {
-    const resp = await callMistralText([{ role: 'user', content: 'Say "API key is working!" and nothing else.' }], key);
-    if (resp.includes('API key is working')) {
-      document.getElementById('setupStatus').textContent = '✅ API key is valid!';
-      showToast('✅ API key valid!');
-      document.getElementById('mistralDot').className = 'dot ready';
-      document.getElementById('mistralStatusText').textContent = '✅ Ready';
-    } else {
-      document.getElementById('setupStatus').textContent = '⚠️ Unexpected response.';
-    }
-  } catch(e) {
-    document.getElementById('setupStatus').textContent = '❌ ' + e.message;
-    showToast('❌ API test failed');
-  }
-});
-
 document.getElementById('saveSetupBtn').addEventListener('click', function() {
-  const key = getApiKey();
-  if (!key) { showToast('⚠️ Please enter an API key.'); return; }
   const company = document.getElementById('companyIdInput').value.trim();
   if (!company) { showToast('⚠️ Please enter a Company ID.'); return; }
   checkSetupComplete();
   if (setupComplete) {
-    document.getElementById('setupStatus').textContent = `✅ Saved! Company: ${company}, API key set.`;
+    document.getElementById('setupStatus').textContent = `✅ Saved! Company: ${company}`;
     showToast('✅ Setup saved! You can now access Policies.');
-    document.getElementById('mistralDot').className = 'dot ready';
-    document.getElementById('mistralStatusText').textContent = '✅ Ready';
     document.getElementById('navPolicy').disabled = false;
     document.getElementById('navBill').disabled = false;
     document.querySelector('[data-view="viewPolicy"]').click();
@@ -875,7 +1208,20 @@ document.getElementById('saveSetupBtn').addEventListener('click', function() {
 });
 
 document.getElementById('companyIdInput').addEventListener('input', checkSetupComplete);
-document.getElementById('apiKeyInput').addEventListener('input', checkSetupComplete);
+
+// ─── MISTRAL HELPERS ──────────────────────────────────────────
+async function callMistralText(messages, model = null) {
+  try {
+    const response = await API.request('/mistral/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages, model })
+    });
+    return response.choices[0].message.content || '';
+  } catch (error) {
+    console.error('Mistral API Error:', error);
+    throw error;
+  }
+}
 
 // ─── POLICY VIEW ──────────────────────────────────────────────
 async function renderPolicyList() {
@@ -1104,7 +1450,6 @@ document.getElementById('loadSelectedPoliciesBtn').addEventListener('click', asy
     const policies = await DB.getPolicies();
     const selectedPolicies = policies.filter(p => selectedPolicyIds.includes(p._id || p.id));
     
-    // Combine all policy texts
     let combinedText = '';
     const selectedNames = [];
     
@@ -1117,7 +1462,6 @@ document.getElementById('loadSelectedPoliciesBtn').addEventListener('click', asy
     document.getElementById('selectedPolicyBadge').textContent = selectedNames.join(', ');
     document.getElementById('selectedPolicyBadge').classList.add('has-content');
     
-    // Show selected policies tags
     const tagsContainer = document.getElementById('selectedPoliciesList');
     tagsContainer.innerHTML = selectedPolicies.map(p => 
       `<span class="selected-policy-tag">
@@ -1137,7 +1481,6 @@ document.getElementById('loadSelectedPoliciesBtn').addEventListener('click', asy
 function removeSelectedPolicy(id) {
   selectedPolicyIds = selectedPolicyIds.filter(p => p !== id);
   renderPolicyChecklist();
-  // Re-load selected policies
   document.getElementById('loadSelectedPoliciesBtn').click();
 }
 
@@ -1161,64 +1504,10 @@ let currentCharges = [];
 let pageImages = [];
 let validationResult = null;
 
-// ─── MISTRAL HELPERS ──────────────────────────────────────────
-async function callMistralText(messages, model = null) {
-  try {
-    const response = await fetch(`${API.baseUrl}/mistral/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, model })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Mistral API request failed');
-    }
-    
-    const data = await response.json();
-    return data.choices[0].message.content || '';
-  } catch (error) {
-    console.error('Mistral API Error:', error);
-    throw error;
-  }
-}
-
-async function callVLMOCR(imageData, pageNum, totalPages) {
-  try {
-    const response = await fetch(`${API.baseUrl}/mistral/vlm`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageData, pageNum, totalPages })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'VLM API request failed');
-    }
-    
-    const data = await response.json();
-    return data.choices[0].message.content || '';
-  } catch (error) {
-    console.error('VLM API Error:', error);
-    throw error;
-  }
-}
-
 // ─── Clean function using backend ────────────────────────────
 async function cleanWithAI(text) {
   try {
-    const response = await fetch(`${API.baseUrl}/mistral/clean`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Clean API failed');
-    }
-    
-    const data = await response.json();
+    const data = await API.cleanText(text);
     return data.cleanedText;
   } catch (error) {
     console.error('Clean API Error:', error);
@@ -1229,20 +1518,20 @@ async function cleanWithAI(text) {
 // ─── Parse function using backend ────────────────────────────
 async function parseWithAI(text) {
   try {
-    const response = await fetch(`${API.baseUrl}/mistral/parse`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Parse API failed');
-    }
-    
-    return await response.json();
+    return await API.parseBill(text);
   } catch (error) {
     console.error('Parse API Error:', error);
+    throw error;
+  }
+}
+
+// ─── VLM OCR using backend ──────────────────────────────────
+async function callVLMOCR(imageData, pageNum, totalPages) {
+  try {
+    const data = await API.vlmOCR(imageData, pageNum, totalPages);
+    return data.choices[0].message.content || '';
+  } catch (error) {
+    console.error('VLM API Error:', error);
     throw error;
   }
 }
@@ -1361,79 +1650,6 @@ function fallbackClean(text) {
   return t.replace(/[ \t]{2,}/g, ' ');
 }
 
-// ─── AI CLEAN & PARSE ─────────────────────────────────────────
-async function cleanWithAI(text) {
-  if (!getApiKey()) throw new Error('Enter Mistral API key');
-  updatePipelineStep('stepClean', 'active');
-  addChatMessage('ai', '🧹 Cleaning VLM OCR text with AI...');
-  const prompt = `You are an expert medical bill cleaner. Clean and fix this Hong Kong hospital bill text extracted by VLM OCR.
-CRITICAL RULES:
-1. Fix S currency to $ (S920 → $920)
-2. Remove HTML tags and formatting artifacts
-3. Fix spacing and line breaks
-4. Keep all medical charge information
-5. Return ONLY the cleaned text
-
-BILL TEXT:
-${text}
-
-Return ONLY the cleaned text.`;
-  const resp = await callMistralText([
-    { role: 'system', content: 'You are a precise medical bill cleaner. Return ONLY the cleaned text.' },
-    { role: 'user', content: prompt }
-  ]);
-  let cleaned = resp.replace(/^```\s*/g, '').replace(/\s*```$/g, '').trim();
-  if (cleaned.length < 50 || cleaned === text) cleaned = fallbackClean(text);
-  updatePipelineStep('stepClean', 'done');
-  addChatMessage('ai', '✅ Text cleaned successfully!');
-  return cleaned;
-}
-
-async function parseWithAI(text) {
-  if (!getApiKey()) throw new Error('Enter Mistral API key');
-  updatePipelineStep('stepParse', 'active');
-  addChatMessage('ai', '🧠 Parsing bill to JSON...');
-  const prompt = `You are an expert medical bill parser. Extract ALL information from this Hong Kong hospital bill and return ONLY valid JSON.
-
-OUTPUT FORMAT:
-{
-  "hospital": "Hospital Name or null",
-  "billNumber": "Bill number or null",
-  "patientName": "Patient name or null",
-  "patientId": "Patient ID or null",
-  "admissionDate": "YYYY-MM-DD or null",
-  "dischargeDate": "YYYY-MM-DD or null",
-  "depositPaid": 0.00,
-  "grandTotal": 0.00,
-  "balanceDue": 0.00,
-  "charges": [
-    {
-      "date": "YYYY-MM-DD or null",
-      "code": "Charge code or null",
-      "description": "Charge description",
-      "category": "accommodation|laboratory|pharmacy|treatment|surgery|cardiac|dietary|supplies|doctor_fee|admission|other",
-      "amount": 0.00,
-      "discount": 0.00
-    }
-  ],
-  "notes": "Any additional notes or null"
-}
-
-BILL TEXT:
-${text}
-
-Return ONLY the JSON.`;
-  const resp = await callMistralText([
-    { role: 'system', content: 'You are a precise medical bill parser. Return ONLY valid JSON.' },
-    { role: 'user', content: prompt }
-  ]);
-  let jsonStr = resp.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-  const data = JSON.parse(jsonStr);
-  updatePipelineStep('stepParse', 'done');
-  addChatMessage('ai', `✅ Parsed ${(data.charges || []).length} charges!`);
-  return data;
-}
-
 // ─── PIPELINE STEPS ──────────────────────────────────────────
 function updatePipelineStep(stepId, status) {
   const el = document.getElementById(stepId);
@@ -1457,7 +1673,6 @@ async function runFullPipeline() {
     document.getElementById('ip-text').value = invoiceText;
   }
   if (!invoiceText) { showToast('⚠️ Please upload a bill first.'); return; }
-  if (!getApiKey()) { showToast('⚠️ Enter Mistral API key in Setup.'); return; }
 
   const pipelineBtn = document.getElementById('pipelineBtn');
   pipelineBtn.disabled = true;
@@ -1786,7 +2001,6 @@ function clearChat() {
 
 async function askQuestion(question) {
   if (!parsedBillData) { addChatMessage('ai', '⚠️ Please parse a bill first.'); return; }
-  if (!getApiKey()) { addChatMessage('ai', '⚠️ Enter API key in Setup.'); return; }
   const policyText = document.getElementById('policy-text').value.trim();
   addChatMessage('user', question);
   document.getElementById('sendChatBtn').disabled = true;
@@ -1958,14 +2172,11 @@ window.askQuestion = askQuestion; window.clearChat = clearChat;
 window.exportTXT = exportTXT; window.exportJSON = exportJSON; window.toggleJSONPreview = toggleJSONPreview;
 window.viewExtractedText = viewExtractedText;
 
-// Initial load
-checkSetupComplete();
-checkServerConnection();
-renderPolicyList();
-renderPolicyChecklist();
-resetPipelineSteps(); checkReady();
-document.getElementById('chatDrawerWrapper').style.display = 'none';
-showToast('🏥 VLM OCR Bill Parser ready! Make sure backend server is running.');
+// ─── START ──────────────────────────────────────────────────
+// Initialize auth first
+initAuth();
+
+// Everything else runs after login via showApp()
 </script>
 </body>
 </html>
