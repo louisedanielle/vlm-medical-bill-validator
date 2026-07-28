@@ -124,7 +124,7 @@
       align-items: center;
       gap: 10px;
       padding: 6px 10px;
-      background: var(--bg-deep);
+      background:var(--bg-deep);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       margin-bottom: 4px;
@@ -620,6 +620,26 @@
 
     <!-- VIEW: Bill Validation -->
     <div id="viewBill" class="view">
+      <!-- API Key Section - Direct Mistral API (like first file) -->
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header"><span class="panel-label">🔑 Mistral API Key (Direct API)</span></div>
+        <div class="panel-body" style="padding:12px 16px; min-height:auto; max-height:none;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <input type="password" id="apiKeyInput" placeholder="Enter your Mistral API key..." style="flex:1; min-width:200px;" />
+            <select id="modelSelect" style="width:auto; min-width:150px;">
+              <option value="pixtral-12b-2409">Pixtral-12B (VLM - Best for OCR)</option>
+              <option value="mistral-small-latest">Mistral Small</option>
+              <option value="mistral-medium-latest">Mistral Medium</option>
+              <option value="mistral-large-latest">Mistral Large</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="testApiKey()">Test</button>
+          </div>
+          <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+            <div class="model-status"><span class="dot" id="mistralDot"></span><span id="mistralStatusText" style="font-size:10px;">Enter API Key</span></div>
+          </div>
+        </div>
+      </div>
+
       <div class="grid">
         <div class="panel">
           <div class="panel-header">
@@ -628,7 +648,7 @@
             <span class="panel-badge" id="policyRefBadge" style="display:none;">📜</span>
             <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;">
               <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('ip-file-input').click()">📎 Upload TXT</button>
-              <button class="btn btn-pdf" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('pdf-file-input').click()">📄 Upload PDF</button>
+              <button class="btn btn-vlm" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('pdf-file-input').click()">📄 Upload PDF</button>
               <input type="file" id="ip-file-input" style="display:none" accept=".txt,.md,.html,.htm" onchange="loadIPFile(event)" />
               <input type="file" id="pdf-file-input" style="display:none" accept=".pdf" onchange="loadPDFFile(event)" />
             </div>
@@ -739,7 +759,6 @@
       <div class="chat-header">
         <div class="title">🤖 Mistral AI <span class="ai-badge">VLM OCR</span></div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <div class="model-status"><span class="dot" id="mistralDot"></span><span id="mistralStatusText" style="font-size:8px;">Ready</span></div>
           <button class="btn btn-secondary btn-sm" onclick="clearChat()" style="padding:2px 8px;font-size:8px;">🗑️</button>
         </div>
       </div>
@@ -764,47 +783,28 @@
 </div>
 
 <script>
+// ─── SAFE HELPERS ──────────────────────────────────────────────
 function safeGetElement(id) {
   const el = document.getElementById(id);
-  if (!el) {
-    console.warn(`Element with id '${id}' not found`);
-  }
+  if (!el) console.warn(`Element with id '${id}' not found`);
   return el;
 }
 
-function safeSetText(id, text) {
-  const el = safeGetElement(id);
-  if (el) {
-    el.textContent = text;
-    return true;
-  }
-  return false;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) { alert(msg); return; }
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
-
-function safeSetDisplay(id, display) {
-  const el = safeGetElement(id);
-  if (el) {
-    el.style.display = display;
-    return true;
-  }
-  return false;
-}
+let toastTimer = null;
 
 // ─── AUTH SYSTEM ──────────────────────────────────────────────
 const AUTH = {
   getSession() {
-    try {
-      return JSON.parse(sessionStorage.getItem('leapstack_session')) || null;
-    } catch { return null; }
+    try { return JSON.parse(sessionStorage.getItem('leapstack_session')) || null; } catch { return null; }
   },
-  
-  setSession(user) {
-    sessionStorage.setItem('leapstack_session', JSON.stringify(user));
-  },
-  
-  clearSession() {
-    sessionStorage.removeItem('leapstack_session');
-  },
+  setSession(user) { sessionStorage.setItem('leapstack_session', JSON.stringify(user)); },
+  clearSession() { sessionStorage.removeItem('leapstack_session'); },
   
   async signUp(companyId, password, companyName) {
     try {
@@ -814,18 +814,9 @@ const AUTH = {
         body: JSON.stringify({ companyId, companyName, password })
       });
       const data = await response.json();
-      
-      // Check if the response was successful
-      if (!response.ok) {
-        return { 
-          success: false, 
-          error: data.error || 'Signup failed' 
-        };
-      }
-      
+      if (!response.ok) return { success: false, error: data.error || 'Signup failed' };
       return { success: true, ...data };
     } catch (error) {
-      console.error('Signup network error:', error);
       return { success: false, error: 'Network error. Please try again.' };
     }
   },
@@ -838,40 +829,29 @@ const AUTH = {
         body: JSON.stringify({ companyId, password })
       });
       const data = await response.json();
-      if (data.success) {
-        this.setSession(data.user);
-      }
+      if (data.success) this.setSession(data.user);
       return data;
     } catch (error) {
       return { success: false, error: 'Network error. Please try again.' };
     }
   },
   
-  isAuthenticated() {
-    return !!this.getSession();
-  },
-  
-  getCurrentUser() {
-    return this.getSession();
-  }
+  isAuthenticated() { return !!this.getSession(); },
+  getCurrentUser() { return this.getSession(); }
 };
 
 // ─── AUTH UI ──────────────────────────────────────────────────
 function initAuth() {
-  // Check if already logged in
   if (AUTH.isAuthenticated()) {
     const user = AUTH.getCurrentUser();
     showApp(user);
     return;
   }
-  
-  // Show auth view
   document.getElementById('viewAuth').classList.add('active');
   document.getElementById('viewAuth').style.display = 'block';
   document.getElementById('viewApp').style.display = 'none';
 }
 
-// Toggle between Sign In and Sign Up
 document.getElementById('showSignUp').addEventListener('click', function(e) {
   e.preventDefault();
   document.getElementById('signInForm').style.display = 'none';
@@ -899,18 +879,20 @@ document.getElementById('signUpBtn').addEventListener('click', async function() 
   errorEl.style.display = 'none';
   successEl.style.display = 'none';
   
-  if (!companyName) { showAuthError('Please enter your company name.'); return; }
-  if (!companyId) { showAuthError('Please choose a Company ID.'); return; }
-  if (!password) { showAuthError('Please create a password.'); return; }
-  if (password !== confirmPassword) { showAuthError('Passwords do not match.'); return; }
+  if (!companyName) { errorEl.textContent = 'Please enter your company name.'; errorEl.style.display = 'block'; return; }
+  if (!companyId) { errorEl.textContent = 'Please choose a Company ID.'; errorEl.style.display = 'block'; return; }
+  if (!password) { errorEl.textContent = 'Please create a password.'; errorEl.style.display = 'block'; return; }
+  if (password !== confirmPassword) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
   
   const result = await AUTH.signUp(companyId, password, companyName);
   if (!result.success) {
-    showAuthError(result.error);
+    errorEl.textContent = result.error;
+    errorEl.style.display = 'block';
     return;
   }
   
-  showAuthSuccess('🎉 Account created successfully! Please sign in.');
+  successEl.textContent = '🎉 Account created successfully! Please sign in.';
+  successEl.style.display = 'block';
   document.getElementById('signUpForm').style.display = 'none';
   document.getElementById('signInForm').style.display = 'block';
   document.getElementById('signupCompanyId').value = '';
@@ -918,7 +900,6 @@ document.getElementById('signUpBtn').addEventListener('click', async function() 
   document.getElementById('signupConfirmPassword').value = '';
 });
 
-// Sign In
 document.getElementById('signInBtn').addEventListener('click', async function() {
   const companyId = document.getElementById('loginCompanyId').value.trim();
   const password = document.getElementById('loginPassword').value;
@@ -928,22 +909,21 @@ document.getElementById('signInBtn').addEventListener('click', async function() 
   errorEl.style.display = 'none';
   successEl.style.display = 'none';
   
-  if (!companyId) { showAuthError('Please enter your Company ID.'); return; }
-  if (!password) { showAuthError('Please enter your password.'); return; }
+  if (!companyId) { errorEl.textContent = 'Please enter your Company ID.'; errorEl.style.display = 'block'; return; }
+  if (!password) { errorEl.textContent = 'Please enter your password.'; errorEl.style.display = 'block'; return; }
   
   const result = await AUTH.signIn(companyId, password);
   if (!result.success) {
-    showAuthError(result.error);
+    errorEl.textContent = result.error;
+    errorEl.style.display = 'block';
     return;
   }
   
-  showAuthSuccess('✅ Welcome back, ' + result.user.companyName + '!');
-  setTimeout(() => {
-    showApp(result.user);
-  }, 500);
+  successEl.textContent = '✅ Welcome back, ' + result.user.companyName + '!';
+  successEl.style.display = 'block';
+  setTimeout(() => { showApp(result.user); }, 500);
 });
 
-// Enter key support
 document.getElementById('loginPassword').addEventListener('keypress', function(e) {
   if (e.key === 'Enter') document.getElementById('signInBtn').click();
 });
@@ -951,35 +931,18 @@ document.getElementById('signupConfirmPassword').addEventListener('keypress', fu
   if (e.key === 'Enter') document.getElementById('signUpBtn').click();
 });
 
-function showAuthError(msg) {
-  const el = document.getElementById('authError');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
-function showAuthSuccess(msg) {
-  const el = document.getElementById('authSuccess');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
 // ─── SHOW MAIN APP ──────────────────────────────────────────
 function showApp(user) {
   document.getElementById('viewAuth').classList.remove('active');
   document.getElementById('viewAuth').style.display = 'none';
   document.getElementById('viewApp').style.display = 'block';
   
-  // Set company ID
   document.getElementById('companyIdInput').value = user.companyId;
   document.getElementById('currentUserDisplay').textContent = '👤 ' + user.companyId;
   
-  // Setup complete
   checkSetupComplete();
-  
-  // Show the setup view
   document.querySelector('[data-view="viewSetup"]').click();
   
-  // Initialize everything
   checkServerConnection();
   renderPolicyList();
   renderPolicyChecklist();
@@ -1002,7 +965,7 @@ document.getElementById('logoutBtn').addEventListener('click', function() {
   }
 });
 
-// ─── API CLIENT ────────────────────────────────────────────────
+// ─── API CLIENT (for backend operations only - policies, bills, auth) ──
 const API = {
   baseUrl: window.location.origin + '/api',
   
@@ -1010,12 +973,8 @@ const API = {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
+        headers: { 'Content-Type': 'application/json', ...options.headers }
       });
-      
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'API request failed');
@@ -1035,53 +994,16 @@ const API = {
   async createPolicy(companyId, name, text, extractedText = '', fileInfo = {}) {
     return this.request('/policies', {
       method: 'POST',
-      body: JSON.stringify({ 
-        companyId, 
-        name, 
-        text,
-        extractedText,
-        fileInfo
-      })
+      body: JSON.stringify({ companyId, name, text, extractedText, fileInfo })
     });
   },
   
   async deletePolicy(id) {
-    return this.request(`/policies/${id}`, {
-      method: 'DELETE'
-    });
+    return this.request(`/policies/${id}`, { method: 'DELETE' });
   },
 
   async saveBill(billData) {
-    return this.request('/bills', {
-      method: 'POST',
-      body: JSON.stringify(billData)
-    });
-  },
-  
-  async getBills(companyId) {
-    if (!companyId) return [];
-    return this.request(`/bills/company/${encodeURIComponent(companyId)}`);
-  },
-
-  async cleanText(text) {
-    return this.request('/mistral/clean', {
-      method: 'POST',
-      body: JSON.stringify({ text })
-    });
-  },
-
-  async parseBill(text) {
-    return this.request('/mistral/parse', {
-      method: 'POST',
-      body: JSON.stringify({ text })
-    });
-  },
-
-  async vlmOCR(imageData, pageNum, totalPages) {
-    return this.request('/mistral/vlm', {
-      method: 'POST',
-      body: JSON.stringify({ imageData, pageNum, totalPages })
-    });
+    return this.request('/bills', { method: 'POST', body: JSON.stringify(billData) });
   },
 
   async health() {
@@ -1091,52 +1013,29 @@ const API = {
 
 // ─── DATA LAYER ──────────────────────────────────────────────
 const DB = {
-  getCompanyId() { 
-    return document.getElementById('companyIdInput').value.trim() || 'default'; 
-  },
+  getCompanyId() { return document.getElementById('companyIdInput').value.trim() || 'default'; },
   
   async getPolicies() {
-    try {
-      return await API.getPolicies(this.getCompanyId());
-    } catch (e) {
-      console.error('Failed to fetch policies:', e);
-      showToast('⚠️ Failed to load policies from server');
-      return [];
-    }
+    try { return await API.getPolicies(this.getCompanyId()); } 
+    catch (e) { console.error('Failed to fetch policies:', e); showToast('⚠️ Failed to load policies'); return []; }
   },
   
   async addPolicy(name, text, extractedText = '', fileInfo = {}) {
     try {
       const result = await API.createPolicy(this.getCompanyId(), name, text, extractedText, fileInfo);
-      showToast('✅ Policy saved to database!');
+      showToast('✅ Policy saved!');
       return result;
-    } catch (e) {
-      console.error('Failed to save policy:', e);
-      showToast('❌ Failed to save policy: ' + e.message);
-      throw e;
-    }
+    } catch (e) { showToast('❌ Failed to save policy: ' + e.message); throw e; }
   },
   
   async deletePolicy(id) {
-    try {
-      await API.deletePolicy(id);
-      showToast('🗑️ Policy deleted from database');
-    } catch (e) {
-      console.error('Failed to delete policy:', e);
-      showToast('❌ Failed to delete policy: ' + e.message);
-      throw e;
-    }
+    try { await API.deletePolicy(id); showToast('🗑️ Policy deleted'); } 
+    catch (e) { showToast('❌ Failed to delete policy: ' + e.message); throw e; }
   },
   
   async saveBill(billData) {
-    try {
-      const result = await API.saveBill(billData);
-      console.log('Bill saved to database:', result);
-      return result;
-    } catch (e) {
-      console.error('Failed to save bill:', e);
-      return null;
-    }
+    try { return await API.saveBill(billData); } 
+    catch (e) { console.error('Failed to save bill:', e); return null; }
   }
 };
 
@@ -1182,10 +1081,7 @@ document.querySelectorAll('[data-view]').forEach(btn => {
   btn.addEventListener('click', function() {
     const viewId = this.dataset.view;
     if (viewId === 'viewPolicy' || viewId === 'viewBill') {
-      if (!setupComplete) {
-        showToast('⚠️ Please complete Setup first (Company ID).');
-        return;
-      }
+      if (!setupComplete) { showToast('⚠️ Please complete Setup first.'); return; }
     }
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
@@ -1210,21 +1106,10 @@ async function checkServerConnection() {
     if (response.ok) {
       document.getElementById('serverDot').className = 'dot online';
       document.getElementById('serverStatusText').textContent = '✅ Server Online';
-    } else {
-      throw new Error('Server returned error');
-    }
+    } else throw new Error('Server error');
   } catch (e) {
-    try {
-      const rootResponse = await fetch(window.location.origin);
-      if (rootResponse.ok) {
-        document.getElementById('serverDot').className = 'dot online';
-        document.getElementById('serverStatusText').textContent = '✅ Server Connected';
-        return;
-      }
-    } catch (rootError) {}
     document.getElementById('serverDot').className = 'dot offline';
     document.getElementById('serverStatusText').textContent = '⚠️ Server Connection Issue';
-    showToast('⚠️ Cannot connect to backend server.');
   }
 }
 
@@ -1235,7 +1120,7 @@ document.getElementById('saveSetupBtn').addEventListener('click', function() {
   checkSetupComplete();
   if (setupComplete) {
     document.getElementById('setupStatus').textContent = `✅ Saved! Company: ${company}`;
-    showToast('✅ Setup saved! You can now access Policies.');
+    showToast('✅ Setup saved!');
     document.getElementById('navPolicy').disabled = false;
     document.getElementById('navBill').disabled = false;
     document.querySelector('[data-view="viewPolicy"]').click();
@@ -1245,37 +1130,117 @@ document.getElementById('saveSetupBtn').addEventListener('click', function() {
 
 document.getElementById('companyIdInput').addEventListener('input', checkSetupComplete);
 
-// ─── MISTRAL HELPERS ──────────────────────────────────────────
+// ─── MISTRAL HELPERS (DIRECT API - LIKE FIRST FILE) ──────────
 async function callMistralText(messages, model = null) {
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) throw new Error('Please enter your Mistral API key');
+  
+  const selectedModel = model || document.getElementById('modelSelect').value || 'mistral-small-latest';
+  
+  const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: selectedModel,
+      messages: messages,
+      temperature: 0.1,
+      max_tokens: 4096,
+      top_p: 0.95
+    })
+  });
+  
+  if (!response.ok) {
+    let msg = `API Error (${response.status})`;
+    try { const data = await response.json(); msg = data.error?.message || msg; } catch(e) {}
+    throw new Error(msg);
+  }
+  
+  const data = await response.json();
+  return data.choices[0].message.content || '';
+}
+
+// ─── VLM OCR (DIRECT API - LIKE FIRST FILE) ──────────────────
+async function callVLMOCR(imageData, pageNum, totalPages) {
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) throw new Error('Please enter your Mistral API key');
+  
+  const base64Image = imageData.split(',')[1];
+  
+  const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'pixtral-12b-2409',
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `Extract ALL text from this medical bill page (${pageNum}/${totalPages}). Return ONLY the text content. Do not add any commentary.`
+          },
+          {
+            type: 'image_url',
+            image_url: `data:image/jpeg;base64,${base64Image}`
+          }
+        ]
+      }],
+      max_tokens: 4096,
+      temperature: 0.1
+    })
+  });
+  
+  if (!response.ok) {
+    let msg = `API Error (${response.status})`;
+    try { const data = await response.json(); msg = data.error?.message || msg; } catch(e) {}
+    throw new Error(msg);
+  }
+  
+  const data = await response.json();
+  return data.choices[0].message.content || '';
+}
+
+// ─── TEST API KEY ──────────────────────────────────────────────
+async function testApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { showToast('⚠️ Enter API key.'); return; }
+  
   try {
-    const response = await API.request('/mistral/chat', {
-      method: 'POST',
-      body: JSON.stringify({ messages, model })
-    });
-    return response.choices[0].message.content || '';
-  } catch (error) {
-    console.error('Mistral API Error:', error);
-    throw error;
+    document.getElementById('mistralStatusText').textContent = 'Testing...';
+    document.getElementById('mistralDot').className = 'dot loading';
+    
+    const response = await callMistralText([
+      { role: 'user', content: 'Say "API key is working!" and nothing else.' }
+    ]);
+    
+    if (response.includes('API key is working')) {
+      showToast('✅ API key is valid!');
+      document.getElementById('mistralStatusText').textContent = '✅ Ready';
+      document.getElementById('mistralDot').className = 'dot ready';
+    } else {
+      showToast(`⚠️ Unexpected response`);
+    }
+  } catch (err) {
+    showToast(`❌ API test failed: ${err.message}`);
+    document.getElementById('mistralStatusText').textContent = '❌ Error';
+    document.getElementById('mistralDot').className = 'dot error';
   }
 }
 
 // ─── POLICY VIEW ──────────────────────────────────────────────
 async function renderPolicyList() {
   const container = document.getElementById('policyList');
-  
-  // ✅ Check if container exists
-  if (!container) {
-    console.warn('Policy list container not found');
-    return;
-  }
+  if (!container) return;
   
   try {
     const policies = await DB.getPolicies();
     const badge = document.getElementById('policyCountBadge');
-    
-    if (badge) {
-      badge.textContent = policies.length + ' policies';
-    }
+    if (badge) badge.textContent = policies.length + ' policies';
     
     if (policies.length === 0) {
       container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;">No policies saved yet.</div>';
@@ -1286,16 +1251,10 @@ async function renderPolicyList() {
     policies.forEach(p => {
       const policyId = p._id || p.id;
       const hasExtracted = p.extractedText && p.extractedText.length > 0;
-      const fileInfo = p.fileInfo || {};
-      
       html += `<div class="policy-item">
         <div style="display:flex;flex-direction:column;gap:2px;">
           <span class="name">📜 ${p.name}</span>
-          <span style="font-size:8px;color:var(--text-muted);">
-            ${p.text.length} chars
-            ${hasExtracted ? ` · 📄 Extracted: ${p.extractedText.length} chars` : ''}
-            ${fileInfo.fileName ? ` · ${fileInfo.fileName}` : ''}
-          </span>
+          <span style="font-size:8px;color:var(--text-muted);">${p.text.length} chars${hasExtracted ? ` · 📄 Extracted` : ''}</span>
         </div>
         <div style="display:flex;gap:4px;">
           ${hasExtracted ? `<button class="btn btn-secondary btn-sm" onclick="viewExtractedText('${policyId}')">👁️ View</button>` : ''}
@@ -1306,10 +1265,7 @@ async function renderPolicyList() {
     });
     container.innerHTML = html;
   } catch (error) {
-    console.error('Failed to render policy list:', error);
-    if (container) {
-      container.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;">❌ Failed to load policies</div>';
-    }
+    container.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;">❌ Failed to load policies</div>';
   }
 }
 
@@ -1317,11 +1273,10 @@ function viewExtractedText(id) {
   DB.getPolicies().then(policies => {
     const policy = policies.find(p => p._id === id || p.id === id);
     if (!policy) { showToast('Policy not found'); return; }
-    
-    if (policy.extractedText && policy.extractedText.length > 0) {
-      alert(`Extracted Text from ${policy.fileInfo?.fileName || 'PDF'}:\n\n${policy.extractedText.substring(0, 2000)}${policy.extractedText.length > 2000 ? '\n\n... (truncated)' : ''}`);
+    if (policy.extractedText) {
+      alert(`Extracted Text:\n\n${policy.extractedText.substring(0, 2000)}`);
     } else {
-      showToast('No extracted text available for this policy');
+      showToast('No extracted text available');
     }
   });
 }
@@ -1329,10 +1284,7 @@ function viewExtractedText(id) {
 window.loadPolicyToForm = async function(id) {
   const policies = await DB.getPolicies();
   const policy = policies.find(p => p._id === id || p.id === id);
-  if (!policy) { 
-    showToast('❌ Policy not found'); 
-    return; 
-  }
+  if (!policy) { showToast('❌ Policy not found'); return; }
   document.getElementById('policyNameInput').value = policy.name;
   document.getElementById('policyTextInput').value = policy.text;
   showToast('📂 Loaded: ' + policy.name);
@@ -1363,7 +1315,6 @@ document.getElementById('savePolicyBtn').addEventListener('click', async functio
     });
     await renderPolicyList();
     await renderPolicyChecklist();
-    
     document.getElementById('policyNameInput').value = '';
     document.getElementById('policyTextInput').value = '';
     document.getElementById('policyTextInput').dataset.extractedText = '';
@@ -1390,16 +1341,13 @@ async function loadPolicyPDF(event) {
   try {
     let text = await extractPDFText(file);
     text = cleanExtractedText(text);
-    
     const name = file.name.replace(/\.pdf$/i, '');
-    
     document.getElementById('policyNameInput').value = name;
     document.getElementById('policyTextInput').value = text;
     document.getElementById('policyTextInput').dataset.extractedText = text;
     document.getElementById('policyTextInput').dataset.fileName = file.name;
     document.getElementById('policyTextInput').dataset.fileSize = file.size;
-    
-    showToast(`✅ Extracted ${text.length} chars from ${file.name}`);
+    showToast(`✅ Extracted ${text.length} chars`);
   } catch (err) {
     showToast('❌ PDF extraction failed: ' + err.message);
   }
@@ -1411,28 +1359,15 @@ function cleanExtractedText(text) {
   const uniqueLines = [];
   const seen = new Set();
   let lastLine = '';
-  
   for (const line of lines) {
     const trimmed = line.trim();
-    if (!trimmed) continue;
-    if (trimmed.length < 3) continue;
-    if (trimmed === lastLine) continue;
-    if (lastLine.includes(trimmed) && trimmed.length > 10) continue;
-    
+    if (!trimmed || trimmed.length < 3 || trimmed === lastLine) continue;
     const key = trimmed.toLowerCase();
-    if (!seen.has(key)) {
-      seen.add(key);
-      uniqueLines.push(trimmed);
-      lastLine = trimmed;
-    }
+    if (!seen.has(key)) { seen.add(key); uniqueLines.push(trimmed); lastLine = trimmed; }
   }
-  
   let cleaned = uniqueLines.join('\n');
-  cleaned = cleaned.replace(//g, '');
-  cleaned = cleaned.replace(/\s{2,}/g, ' ');
-  cleaned = cleaned.replace(/^\s*\d+\s*$/gm, '');
+  cleaned = cleaned.replace(//g, '').replace(/\s{2,}/g, ' ').replace(/^\s*\d+\s*$/gm, '');
   cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
-  
   return cleaned.trim();
 }
 
@@ -1442,7 +1377,6 @@ async function extractPDFText(file) {
   const pdfjs = await loadPDFJS();
   const pdf = await pdfjs.getDocument({ data: typedarray }).promise;
   let fullText = '';
-  
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
@@ -1457,17 +1391,12 @@ let selectedPolicyIds = [];
 
 async function renderPolicyChecklist() {
   const container = document.getElementById('policyChecklist');
-  
-  if (!container) {
-    console.warn('Policy checklist container not found');
-    return;
-  }
+  if (!container) return;
   
   try {
     const policies = await DB.getPolicies();
-    
     if (policies.length === 0) {
-      container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;text-align:center;">No policies available. Go to Policies tab to create one.</div>';
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;text-align:center;">No policies available.</div>';
       return;
     }
     
@@ -1482,61 +1411,37 @@ async function renderPolicyChecklist() {
       </div>`;
     });
     container.innerHTML = html;
-    
-    // ✅ Only update badge if the function exists
     updateSelectedPoliciesBadge();
   } catch (error) {
-    console.error('Failed to render policy checklist:', error);
-    if (container) {
-      container.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;">❌ Failed to load policies</div>';
-    }
+    container.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;">❌ Failed to load policies</div>';
   }
 }
 
 function togglePolicy(id) {
   const index = selectedPolicyIds.indexOf(id);
-  if (index > -1) {
-    selectedPolicyIds.splice(index, 1);
-  } else {
-    selectedPolicyIds.push(id);
-  }
+  if (index > -1) selectedPolicyIds.splice(index, 1);
+  else selectedPolicyIds.push(id);
   renderPolicyChecklist();
 }
 
 function updateSelectedPoliciesBadge() {
   const badge = document.getElementById('selectedPoliciesBadge');
   const display = document.getElementById('selectedPoliciesDisplay');
- 
-  if (badge) {
-    badge.textContent = selectedPolicyIds.length + ' selected';
-  }
-  
-  if (display) {
-    display.style.display = selectedPolicyIds.length > 0 ? 'block' : 'none';
-  }
+  if (badge) badge.textContent = selectedPolicyIds.length + ' selected';
+  if (display) display.style.display = selectedPolicyIds.length > 0 ? 'block' : 'none';
 }
 
 document.getElementById('loadSelectedPoliciesBtn').addEventListener('click', async function() {
-  if (selectedPolicyIds.length === 0) {
-    showToast('⚠️ Please select at least one policy.');
-    return;
-  }
+  if (selectedPolicyIds.length === 0) { showToast('⚠️ Select at least one policy.'); return; }
   
   try {
     const policies = await DB.getPolicies();
     const selectedPolicies = policies.filter(p => selectedPolicyIds.includes(p._id || p.id));
-    
     let combinedText = '';
-    const selectedNames = [];
-    
     for (const policy of selectedPolicies) {
       combinedText += `=== ${policy.name} ===\n${policy.text}\n\n`;
-      selectedNames.push(policy.name);
     }
-    
     document.getElementById('policy-text').value = combinedText.trim();
-    document.getElementById('selectedPolicyBadge').textContent = selectedNames.join(', ');
-    document.getElementById('selectedPolicyBadge').classList.add('has-content');
     
     const tagsContainer = document.getElementById('selectedPoliciesList');
     tagsContainer.innerHTML = selectedPolicies.map(p => 
@@ -1545,9 +1450,8 @@ document.getElementById('loadSelectedPoliciesBtn').addEventListener('click', asy
         <span class="remove" onclick="removeSelectedPolicy('${p._id || p.id}')">×</span>
       </span>`
     ).join('');
-    
     document.getElementById('selectedPoliciesDisplay').style.display = 'block';
-    showToast(`✅ Loaded ${selectedPolicies.length} policies (${combinedText.length} chars total)`);
+    showToast(`✅ Loaded ${selectedPolicies.length} policies`);
     checkReady();
   } catch (error) {
     showToast('❌ Failed to load policies: ' + error.message);
@@ -1564,8 +1468,6 @@ document.getElementById('clearSelectedPoliciesBtn').addEventListener('click', fu
   selectedPolicyIds = [];
   renderPolicyChecklist();
   document.getElementById('policy-text').value = '';
-  document.getElementById('selectedPolicyBadge').textContent = 'None';
-  document.getElementById('selectedPolicyBadge').classList.remove('has-content');
   document.getElementById('selectedPoliciesDisplay').style.display = 'none';
   document.getElementById('selectedPoliciesList').innerHTML = '';
   checkReady();
@@ -1580,36 +1482,84 @@ let currentCharges = [];
 let pageImages = [];
 let validationResult = null;
 
-// ─── Clean function using backend ────────────────────────────
+// ─── Clean function (DIRECT API) ────────────────────────────
 async function cleanWithAI(text) {
-  try {
-    const data = await API.cleanText(text);
-    return data.cleanedText;
-  } catch (error) {
-    console.error('Clean API Error:', error);
-    throw error;
-  }
+  if (!document.getElementById('apiKeyInput').value.trim()) throw new Error('Enter Mistral API key');
+  updatePipelineStep('stepClean', 'active');
+  addChatMessage('ai', '🧹 Cleaning text with AI...');
+  
+  const prompt = `You are an expert medical bill cleaner. Clean and fix this Hong Kong hospital bill text extracted by VLM OCR.
+CRITICAL RULES:
+1. Fix S currency to $ (S920 → $920)
+2. Remove HTML tags and formatting artifacts
+3. Fix spacing and line breaks
+4. Keep all medical charge information
+5. Return ONLY the cleaned text
+
+BILL TEXT:
+${text}
+
+Return ONLY the cleaned text.`;
+  
+  const resp = await callMistralText([
+    { role: 'system', content: 'You are a precise medical bill cleaner. Return ONLY the cleaned text.' },
+    { role: 'user', content: prompt }
+  ]);
+  
+  let cleaned = resp.replace(/^```\s*/g, '').replace(/\s*```$/g, '').trim();
+  if (cleaned.length < 50 || cleaned === text) cleaned = fallbackClean(text);
+  updatePipelineStep('stepClean', 'done');
+  addChatMessage('ai', '✅ Text cleaned successfully!');
+  return cleaned;
 }
 
-// ─── Parse function using backend ────────────────────────────
+// ─── Parse function (DIRECT API) ────────────────────────────
 async function parseWithAI(text) {
-  try {
-    return await API.parseBill(text);
-  } catch (error) {
-    console.error('Parse API Error:', error);
-    throw error;
-  }
+  if (!document.getElementById('apiKeyInput').value.trim()) throw new Error('Enter Mistral API key');
+  updatePipelineStep('stepParse', 'active');
+  addChatMessage('ai', '🧠 Parsing bill to JSON...');
+  
+  const prompt = `You are an expert medical bill parser. Extract ALL information from this Hong Kong hospital bill and return ONLY valid JSON.
+
+OUTPUT FORMAT:
+{
+  "hospital": "Hospital Name or null",
+  "billNumber": "Bill number or null",
+  "patientName": "Patient name or null",
+  "patientId": "Patient ID or null",
+  "admissionDate": "YYYY-MM-DD or null",
+  "dischargeDate": "YYYY-MM-DD or null",
+  "depositPaid": 0.00,
+  "grandTotal": 0.00,
+  "balanceDue": 0.00,
+  "charges": [
+    {
+      "date": "YYYY-MM-DD or null",
+      "code": "Charge code or null",
+      "description": "Charge description",
+      "category": "accommodation|laboratory|pharmacy|treatment|surgery|cardiac|dietary|supplies|doctor_fee|admission|other",
+      "amount": 0.00,
+      "discount": 0.00
+    }
+  ],
+  "notes": "Any additional notes or null"
 }
 
-// ─── VLM OCR using backend ──────────────────────────────────
-async function callVLMOCR(imageData, pageNum, totalPages) {
-  try {
-    const data = await API.vlmOCR(imageData, pageNum, totalPages);
-    return data.choices[0].message.content || '';
-  } catch (error) {
-    console.error('VLM API Error:', error);
-    throw error;
-  }
+BILL TEXT:
+${text}
+
+Return ONLY the JSON.`;
+  
+  const resp = await callMistralText([
+    { role: 'system', content: 'You are a precise medical bill parser. Return ONLY valid JSON.' },
+    { role: 'user', content: prompt }
+  ]);
+  
+  let jsonStr = resp.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+  const data = JSON.parse(jsonStr);
+  updatePipelineStep('stepParse', 'done');
+  addChatMessage('ai', `✅ Parsed ${(data.charges || []).length} charges!`);
+  return data;
 }
 
 async function loadPDFJS() {
@@ -1662,7 +1612,11 @@ async function pdfToImages(file) {
       img.src = imageData;
       img.alt = `Page ${i}`;
       img.title = `Page ${i}`;
-      img.style.width = '100%'; img.style.borderRadius = 'var(--radius)'; img.style.border = '1px solid var(--border)'; img.style.maxHeight = '150px'; img.style.objectFit = 'cover';
+      img.style.width = '100%';
+      img.style.borderRadius = 'var(--radius)';
+      img.style.border = '1px solid var(--border)';
+      img.style.maxHeight = '150px';
+      img.style.objectFit = 'cover';
       previewDiv.appendChild(img);
       const pct = 35 + (i / totalPages) * 30;
       progressBar.style.width = Math.min(pct, 65) + '%';
@@ -1685,7 +1639,7 @@ async function pdfToImages(file) {
         const pageOCR = await callVLMOCR(images[i], i+1, totalPages);
         ocrText += pageOCR + '\n\n';
       } catch(e) {
-        ocrText += `[Page ${i+1} OCR failed]\n\n`;
+        ocrText += `[Page ${i+1} OCR failed: ${e.message}]\n\n`;
       }
     }
     let cleaned = cleanOCRText(ocrText);
@@ -1767,7 +1721,7 @@ async function runFullPipeline() {
       } catch(e) {
         cleaned = fallbackClean(invoiceText);
         cleanedText = cleaned;
-        addChatMessage('ai', '⚠️ Used fallback cleaner (AI cleaning failed).');
+        addChatMessage('ai', '⚠️ Used fallback cleaner');
       }
     }
     updatePipelineStep('stepClean', 'done');
@@ -1795,7 +1749,7 @@ async function runFullPipeline() {
     preview.textContent = JSON.stringify(data, null, 2);
     preview.style.display = 'block';
     checkReady();
-    addChatMessage('ai', `✅ Pipeline complete! Found ${currentCharges.length} charges. Total: HK$ ${(data.grandTotal || 0).toFixed(2)}`);
+    addChatMessage('ai', `✅ Pipeline complete! Found ${currentCharges.length} charges.`);
     showToast(`✅ Pipeline complete! ${currentCharges.length} charges found.`);
   } catch (err) {
     document.getElementById('result-dot').className = 'status-dot rejected';
@@ -1822,10 +1776,9 @@ async function runVLMOnly() {
     updateCounts(); updateBadges(); checkReady();
     if (text.replace(/\s/g,'').length > 50) {
       showToast(`✅ VLM OCR complete! ${text.length} chars extracted.`);
-      addChatMessage('ai', `✅ VLM OCR extracted ${text.length} chars from ${file.name}`);
+      addChatMessage('ai', `✅ VLM OCR extracted ${text.length} chars`);
     } else {
       showToast(`⚠️ VLM OCR extracted limited text (${text.length} chars).`);
-      addChatMessage('ai', `⚠️ VLM OCR extracted only ${text.length} chars.`);
     }
   } catch (err) {
     showToast('❌ VLM OCR failed: ' + err.message);
@@ -1879,7 +1832,7 @@ function validate() {
         status = 'warning';
         message = '⚠️ Unusually high amount, no specific policy limit found';
         warnings++;
-        reasons.push(`Charge "${charge.description}" (HK$ ${charge.amount.toFixed(2)}) is unusually high with no specific policy limit.`);
+        reasons.push(`Charge "${charge.description}" (HK$ ${charge.amount.toFixed(2)}) is unusually high.`);
       } else {
         passed++;
       }
@@ -1894,7 +1847,7 @@ function validate() {
 
   let statusText, dotClass, decisionHtml;
   if (approved) {
-    statusText = `✅ APPROVED · All charges comply (${Math.round(complianceRate)}% compliance)`;
+    statusText = `✅ APPROVED · ${Math.round(complianceRate)}% compliance`;
     dotClass = 'status-dot approved';
     decisionHtml = `<div class="validation-decision approved">✅ APPROVED · Bill meets all policy requirements</div>`;
   } else {
@@ -1927,7 +1880,7 @@ function validate() {
   }
   html += `</div>`;
   html += `<div class="progress-container" style="background:var(--bg-deep);border-radius:var(--radius);height:6px;margin:8px 0 12px;overflow:hidden;border:1px solid var(--border);">
-    <div class="progress-fill ${complianceRate >= 80 ? '' : (complianceRate >= 50 ? 'medium' : 'low')}" style="width:${Math.min(complianceRate,100)}%;height:100%;border-radius:var(--radius);transition:width 0.5s ease;background:${complianceRate >= 80 ? 'linear-gradient(90deg,var(--green),var(--accent))' : (complianceRate >= 50 ? 'linear-gradient(90deg,var(--yellow),var(--accent))' : 'linear-gradient(90deg,var(--red),var(--yellow))')};"></div>
+    <div class="progress-fill" style="width:${Math.min(complianceRate,100)}%;height:100%;border-radius:var(--radius);transition:width 0.5s ease;background:${complianceRate >= 80 ? 'linear-gradient(90deg,var(--green),var(--accent))' : (complianceRate >= 50 ? 'linear-gradient(90deg,var(--yellow),var(--accent))' : 'linear-gradient(90deg,var(--red),var(--yellow))')};"></div>
   </div>`;
 
   if (results.length > 0) {
@@ -1951,7 +1904,7 @@ function validate() {
   const emptyResult = document.querySelector('.result-body .empty-result');
   if (emptyResult) emptyResult.style.display = 'none';
 
-  addChatMessage('ai', `✅ Validation complete! ${approved ? 'APPROVED' : 'REJECTED'}. ${passed} passed, ${failed} failed.`);
+  addChatMessage('ai', `✅ Validation complete! ${approved ? 'APPROVED' : 'REJECTED'}.`);
 }
 
 function extractPolicyLimits(text) {
@@ -2060,6 +2013,7 @@ function loadIPFile(event) {
 // ─── CHAT ──────────────────────────────────────────────────────
 function addChatMessage(type, content) {
   const container = document.getElementById('chatMessages');
+  if (!container) return;
   const div = document.createElement('div');
   div.className = `chat-message ${type}`;
   const sender = type === 'user' ? '🧑 You' : '🤖 Mistral AI';
@@ -2071,6 +2025,7 @@ function addChatMessage(type, content) {
 
 function clearChat() { 
   const container = document.getElementById('chatMessages');
+  if (!container) return;
   container.innerHTML = ''; 
   addChatMessage('ai', '🧹 Chat cleared. Ready!'); 
 }
@@ -2110,17 +2065,24 @@ Question: ${question}`;
 }
 
 // ─── UI HELPERS ──────────────────────────────────────────────
-function updateCounts() { document.getElementById('ip-char-count').textContent = document.getElementById('ip-text').value.length.toLocaleString(); }
+function updateCounts() { 
+  const el = document.getElementById('ip-char-count');
+  if (el) el.textContent = document.getElementById('ip-text').value.length.toLocaleString(); 
+}
 function updateBadges() {
   const ip = document.getElementById('ip-text').value.trim();
-  document.getElementById('ip-badge').textContent = ip ? 'LOADED' : 'EMPTY';
-  document.getElementById('ip-badge').classList.toggle('has-content', !!ip);
+  const badge = document.getElementById('ip-badge');
+  if (badge) {
+    badge.textContent = ip ? 'LOADED' : 'EMPTY';
+    badge.classList.toggle('has-content', !!ip);
+  }
 }
 function checkReady() {
   const ip = document.getElementById('ip-text').value.trim();
   const policy = document.getElementById('policy-text').value.trim();
   const hasParsed = parsedBillData && parsedBillData.charges && parsedBillData.charges.length > 0;
-  document.getElementById('validate-btn').disabled = !(ip && policy && hasParsed);
+  const btn = document.getElementById('validate-btn');
+  if (btn) btn.disabled = !(ip && policy && hasParsed);
 }
 function clearIP() {
   document.getElementById('ip-text').value = '';
@@ -2143,17 +2105,11 @@ function clearIP() {
   const emptyResult = document.querySelector('.result-body .empty-result');
   if (emptyResult) emptyResult.style.display = 'block';
 }
-function clearAll() { clearIP(); document.getElementById('policy-text').value = ''; document.getElementById('selectedPolicyBadge').textContent = 'None'; document.getElementById('selectedPolicyBadge').classList.remove('has-content'); document.getElementById('policyPreview').style.display = 'none'; document.getElementById('ip-file-input').value = ''; document.getElementById('pdf-file-input').value = ''; resetPipelineSteps(); showToast('Reset complete'); checkReady(); }
+function clearAll() { clearIP(); document.getElementById('policy-text').value = ''; document.getElementById('selectedPoliciesDisplay').style.display = 'none'; document.getElementById('selectedPoliciesList').innerHTML = ''; document.getElementById('ip-file-input').value = ''; document.getElementById('pdf-file-input').value = ''; resetPipelineSteps(); showToast('Reset complete'); checkReady(); }
 function copyResult() {
   const content = document.getElementById('result-content').innerText;
   if (content) navigator.clipboard.writeText(content).then(() => showToast('Copied!'));
 }
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
-}
-let toastTimer = null;
 
 // ─── EXPORT ──────────────────────────────────────────────────
 function exportTXT() {
@@ -2247,12 +2203,10 @@ window.clearIP = clearIP; window.clearAll = clearAll; window.copyResult = copyRe
 window.askQuestion = askQuestion; window.clearChat = clearChat;
 window.exportTXT = exportTXT; window.exportJSON = exportJSON; window.toggleJSONPreview = toggleJSONPreview;
 window.viewExtractedText = viewExtractedText;
+window.testApiKey = testApiKey;
 
 // ─── START ──────────────────────────────────────────────────
-// Initialize auth first
 initAuth();
-
-// Everything else runs after login via showApp()
 </script>
 </body>
 </html>
