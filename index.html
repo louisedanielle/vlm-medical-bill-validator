@@ -314,6 +314,7 @@
     }
     .chat-drawer-body .model-status .dot.ready { background: var(--green); }
     .chat-drawer-body .model-status .dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
+    .chat-drawer-body .model-status .dot.error { background: var(--red); }
     .chat-drawer-body .api-config {
       background: var(--bg-deep);
       border-radius: var(--radius);
@@ -716,12 +717,23 @@
       <div class="chat-header">
         <div class="title">🤖 Mistral AI <span class="ai-badge">VLM OCR</span></div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <div class="model-status"><span class="dot" id="mistralDot"></span><span id="mistralStatusText" style="font-size:8px;">Ready</span></div>
+          <div class="model-status"><span class="dot" id="mistralDot"></span><span id="mistralStatusText" style="font-size:8px;">Enter API Key</span></div>
           <button class="btn btn-secondary btn-sm" onclick="clearChat()" style="padding:2px 8px;font-size:8px;">🗑️</button>
         </div>
       </div>
+      <div class="api-config">
+        <span class="label">🔑 Mistral API Key:</span>
+        <input type="password" id="apiKeyInput" placeholder="Enter your API key..." />
+        <select id="modelSelect">
+          <option value="pixtral-12b-2409">Pixtral-12B (VLM - Best for OCR)</option>
+          <option value="mistral-small-latest">Mistral Small</option>
+          <option value="mistral-medium-latest">Mistral Medium</option>
+          <option value="mistral-large-latest">Mistral Large</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="testApiKey()">Test</button>
+      </div>
       <div class="chat-messages" id="chatMessages">
-        <div class="chat-message ai"><div class="sender">🤖 Mistral AI</div><div class="content">👋 Hi! Upload a bill & select policies, then run pipeline.</div></div>
+        <div class="chat-message ai"><div class="sender">🤖 Mistral AI</div><div class="content">👋 Hi! Upload a bill & select policies, then run pipeline. Enter your Mistral API key above.</div></div>
         <div class="suggested-questions" id="suggestedQuestions">
           <span style="font-size:7px;color:var(--text-muted);font-family:var(--font-mono);align-self:center;">Quick:</span>
           <button class="q-btn" onclick="runFullPipeline()">🚀 Full Pipeline</button>
@@ -894,7 +906,7 @@ function showApp(user) {
   renderPolicyChecklist();
   resetPipelineSteps();
   checkReady();
-  document.getElementById('chatDrawerWrapper').style.display = 'none';
+  document.getElementById('chatDrawerWrapper').style.display = 'block';
   showToast('🏥 Welcome, ' + (user.companyName || user.companyId) + '!');
 }
 
@@ -1078,16 +1090,93 @@ document.getElementById('saveSetupBtn').addEventListener('click', function() {
 document.getElementById('companyIdInput').addEventListener('input', checkSetupComplete);
 
 // ─── MISTRAL HELPERS ──────────────────────────────────────────
+// Get API key from the chat drawer
+function getApiKey() {
+  return document.getElementById('apiKeyInput').value.trim();
+}
+
+// Direct Mistral API call for text
 async function callMistralText(messages, model = null) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('Please enter your Mistral API key');
+  const selectedModel = model || document.getElementById('modelSelect').value || 'mistral-small-latest';
+  const resp = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: selectedModel, messages, temperature: 0.1, max_tokens: 4096, top_p: 0.95 })
+  });
+  if (!resp.ok) {
+    let msg = `API Error (${resp.status})`;
+    try { const d = await resp.json(); msg = d.error?.message || msg; } catch(e) {}
+    throw new Error(msg);
+  }
+  const data = await resp.json();
+  return data.choices[0].message.content || '';
+}
+
+// ─── DIRECT VLM OCR (Mistral Pixtral) ──────────────────────
+async function callVLMOCR(imageData, pageNum, totalPages) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('Please enter your Mistral API key');
+  
+  const base64Image = imageData.split(',')[1];
+  const resp = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': `Bearer ${apiKey}` 
+    },
+    body: JSON.stringify({
+      model: 'pixtral-12b-2409',
+      messages: [{
+        role: 'user',
+        content: [
+          { 
+            type: 'text', 
+            text: `Extract ALL text from this medical bill page (${pageNum}/${totalPages}). Return ONLY the text content. Do not add any commentary.` 
+          },
+          { 
+            type: 'image_url', 
+            image_url: `data:image/jpeg;base64,${base64Image}` 
+          }
+        ]
+      }],
+      max_tokens: 4096,
+      temperature: 0.1
+    })
+  });
+  
+  if (!resp.ok) {
+    let msg = `API Error (${resp.status})`;
+    try { 
+      const d = await resp.json(); 
+      msg = d.error?.message || msg; 
+    } catch(e) {}
+    throw new Error(msg);
+  }
+  const data = await resp.json();
+  return data.choices[0].message.content || '';
+}
+
+// Test API key
+async function testApiKey() {
+  const key = getApiKey();
+  if (!key) { addChatMessage('ai', '⚠️ Enter API key.'); return; }
   try {
-    const response = await API.request('/mistral/chat', {
-      method: 'POST',
-      body: JSON.stringify({ messages, model })
-    });
-    return response.choices[0].message.content || '';
-  } catch (error) {
-    console.error('Mistral API Error:', error);
-    throw error;
+    document.getElementById('mistralStatusText').textContent = 'Testing...';
+    document.getElementById('mistralDot').className = 'dot loading';
+    const resp = await callMistralText([{ role: 'user', content: 'Say "API key is working!" and nothing else.' }]);
+    if (resp.includes('API key is working')) {
+      addChatMessage('ai', '✅ API key is valid!');
+      document.getElementById('mistralStatusText').textContent = '✅ Ready';
+      document.getElementById('mistralDot').className = 'dot ready';
+    } else {
+      addChatMessage('ai', `⚠️ Unexpected response: "${resp.substring(0,50)}..."`);
+    }
+  } catch (err) {
+    addChatMessage('ai', `❌ API test failed: ${err.message}`);
+    document.getElementById('mistralStatusText').textContent = '❌ Error';
+    document.getElementById('mistralDot').className = 'dot error';
   }
 }
 
@@ -1375,28 +1464,6 @@ async function parseWithAI(text) {
   }
 }
 
-// ─── VLM OCR using backend ──────────────────────────────────
-// FIXED: using the backend VLM endpoint (Mistral pixtral via backend)
-async function callVLMOCR(imageData, pageNum, totalPages) {
-  try {
-    // Use the backend API endpoint that proxies Mistral VLM
-    const response = await fetch('/api/mistral/vlm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageData, pageNum, totalPages })
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `VLM API error: ${response.status}`);
-    }
-    const data = await response.json();
-    return data.choices[0].message.content || '';
-  } catch (error) {
-    console.error('VLM API Error:', error);
-    throw error;
-  }
-}
-
 async function loadPDFJS() {
   if (pdfjsLib) return pdfjsLib;
   try {
@@ -1470,7 +1537,8 @@ async function pdfToImages(file) {
         const pageOCR = await callVLMOCR(images[i], i+1, totalPages);
         ocrText += pageOCR + '\n\n';
       } catch(e) {
-        ocrText += `[Page ${i+1} OCR failed]\n\n`;
+        ocrText += `[Page ${i+1} OCR failed: ${e.message}]\n\n`;
+        console.error('VLM OCR error on page', i+1, e);
       }
     }
     let cleaned = cleanOCRText(ocrText);
@@ -1480,7 +1548,7 @@ async function pdfToImages(file) {
     statusText.textContent = `✅ VLM OCR complete! ${cleaned.length} chars`;
     if (cleaned.replace(/\s/g,'').length < 50 || !/\d/.test(cleaned)) {
       document.getElementById('extractionWarning').style.display = 'block';
-      document.getElementById('extractionMessage').textContent = 'VLM OCR extracted limited text. Try a clearer file.';
+      document.getElementById('extractionMessage').textContent = 'VLM OCR extracted limited text. Try a clearer file or check API key.';
     } else {
       document.getElementById('extractionWarning').style.display = 'none';
     }
@@ -1534,6 +1602,9 @@ async function runFullPipeline() {
     document.getElementById('ip-text').value = invoiceText;
   }
   if (!invoiceText) { showToast('⚠️ Please upload a bill first.'); return; }
+  
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('⚠️ Please enter your Mistral API key in the chat drawer.'); return; }
 
   const pipelineBtn = document.getElementById('pipelineBtn');
   pipelineBtn.disabled = true;
@@ -1597,6 +1668,10 @@ async function runFullPipeline() {
 async function runVLMOnly() {
   const fileInput = document.getElementById('pdf-file-input');
   if (!fileInput.files || !fileInput.files[0]) { showToast('⚠️ Please upload a PDF first.'); return; }
+  
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('⚠️ Please enter your Mistral API key in the chat drawer.'); return; }
+  
   const file = fileInput.files[0];
   showToast(`👁️ VLM OCR on ${file.name}...`);
   resetPipelineSteps();
@@ -1805,6 +1880,10 @@ function displayParsedBill(data) {
 async function loadPDFFile(event) {
   const file = event.target.files[0];
   if (!file) return;
+  
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('⚠️ Please enter your Mistral API key in the chat drawer first.'); return; }
+  
   showToast(`📄 Processing PDF: ${file.name}...`);
   resetPipelineSteps();
   try {
@@ -1862,6 +1941,8 @@ function clearChat() {
 
 async function askQuestion(question) {
   if (!parsedBillData) { addChatMessage('ai', '⚠️ Please parse a bill first.'); return; }
+  const apiKey = getApiKey();
+  if (!apiKey) { addChatMessage('ai', '⚠️ Enter API key.'); return; }
   const policyText = document.getElementById('policy-text').value.trim();
   addChatMessage('user', question);
   document.getElementById('sendChatBtn').disabled = true;
@@ -2032,6 +2113,7 @@ window.clearIP = clearIP; window.clearAll = clearAll; window.copyResult = copyRe
 window.askQuestion = askQuestion; window.clearChat = clearChat;
 window.exportTXT = exportTXT; window.exportJSON = exportJSON; window.toggleJSONPreview = toggleJSONPreview;
 window.viewExtractedText = viewExtractedText;
+window.testApiKey = testApiKey;
 
 // ─── START ──────────────────────────────────────────────────
 initAuth();
