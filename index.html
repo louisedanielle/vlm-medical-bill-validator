@@ -922,7 +922,7 @@ document.getElementById('logoutBtn').addEventListener('click', function() {
   }
 });
 
-// ─── API CLIENT ────────────────────────────────────────────────
+// ─── API CLIENT (only for database operations) ──────────────
 const API = {
   baseUrl: window.location.origin + '/api',
   async request(endpoint, options = {}) {
@@ -951,8 +951,6 @@ const API = {
   async deletePolicy(id) { return this.request(`/policies/${id}`, { method: 'DELETE' }); },
   async saveBill(billData) { return this.request('/bills', { method: 'POST', body: JSON.stringify(billData) }); },
   async getBills(companyId) { if (!companyId) return []; return this.request(`/bills/company/${encodeURIComponent(companyId)}`); },
-  async cleanText(text) { return this.request('/mistral/clean', { method: 'POST', body: JSON.stringify({ text }) }); },
-  async parseBill(text) { return this.request('/mistral/parse', { method: 'POST', body: JSON.stringify({ text }) }); },
   async health() { return this.request('/health'); }
 };
 
@@ -1089,8 +1087,7 @@ document.getElementById('saveSetupBtn').addEventListener('click', function() {
 
 document.getElementById('companyIdInput').addEventListener('input', checkSetupComplete);
 
-// ─── MISTRAL HELPERS ──────────────────────────────────────────
-// Get API key from the chat drawer
+// ─── MISTRAL HELPERS (DIRECT API CALLS) ──────────────────────
 function getApiKey() {
   return document.getElementById('apiKeyInput').value.trim();
 }
@@ -1156,6 +1153,84 @@ async function callVLMOCR(imageData, pageNum, totalPages) {
   }
   const data = await resp.json();
   return data.choices[0].message.content || '';
+}
+
+// ─── AI CLEAN (DIRECT MISTRAL) ──────────────────────────────
+async function cleanWithAI(text) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('Please enter your Mistral API key');
+  
+  updatePipelineStep('stepClean', 'active');
+  addChatMessage('ai', '🧹 Cleaning VLM OCR text with AI...');
+  const prompt = `You are an expert medical bill cleaner. Clean and fix this Hong Kong hospital bill text extracted by VLM OCR.
+CRITICAL RULES:
+1. Fix S currency to $ (S920 → $920)
+2. Remove HTML tags and formatting artifacts
+3. Fix spacing and line breaks
+4. Keep all medical charge information
+5. Return ONLY the cleaned text
+
+BILL TEXT:
+${text}
+
+Return ONLY the cleaned text.`;
+  const resp = await callMistralText([
+    { role: 'system', content: 'You are a precise medical bill cleaner. Return ONLY the cleaned text.' },
+    { role: 'user', content: prompt }
+  ]);
+  let cleaned = resp.replace(/^```\s*/g, '').replace(/\s*```$/g, '').trim();
+  if (cleaned.length < 50 || cleaned === text) cleaned = fallbackClean(text);
+  updatePipelineStep('stepClean', 'done');
+  addChatMessage('ai', '✅ Text cleaned successfully!');
+  return cleaned;
+}
+
+// ─── AI PARSE (DIRECT MISTRAL) ──────────────────────────────
+async function parseWithAI(text) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('Please enter your Mistral API key');
+  
+  updatePipelineStep('stepParse', 'active');
+  addChatMessage('ai', '🧠 Parsing bill to JSON...');
+  const prompt = `You are an expert medical bill parser. Extract ALL information from this Hong Kong hospital bill and return ONLY valid JSON.
+
+OUTPUT FORMAT:
+{
+  "hospital": "Hospital Name or null",
+  "billNumber": "Bill number or null",
+  "patientName": "Patient name or null",
+  "patientId": "Patient ID or null",
+  "admissionDate": "YYYY-MM-DD or null",
+  "dischargeDate": "YYYY-MM-DD or null",
+  "depositPaid": 0.00,
+  "grandTotal": 0.00,
+  "balanceDue": 0.00,
+  "charges": [
+    {
+      "date": "YYYY-MM-DD or null",
+      "code": "Charge code or null",
+      "description": "Charge description",
+      "category": "accommodation|laboratory|pharmacy|treatment|surgery|cardiac|dietary|supplies|doctor_fee|admission|other",
+      "amount": 0.00,
+      "discount": 0.00
+    }
+  ],
+  "notes": "Any additional notes or null"
+}
+
+BILL TEXT:
+${text}
+
+Return ONLY the JSON.`;
+  const resp = await callMistralText([
+    { role: 'system', content: 'You are a precise medical bill parser. Return ONLY valid JSON.' },
+    { role: 'user', content: prompt }
+  ]);
+  let jsonStr = resp.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+  const data = JSON.parse(jsonStr);
+  updatePipelineStep('stepParse', 'done');
+  addChatMessage('ai', `✅ Parsed ${(data.charges || []).length} charges!`);
+  return data;
 }
 
 // Test API key
@@ -1442,27 +1517,6 @@ let parsedBillData = null;
 let currentCharges = [];
 let pageImages = [];
 let validationResult = null;
-
-// ─── Clean function using backend ────────────────────────────
-async function cleanWithAI(text) {
-  try {
-    const data = await API.cleanText(text);
-    return data.cleanedText;
-  } catch (error) {
-    console.error('Clean API Error:', error);
-    throw error;
-  }
-}
-
-// ─── Parse function using backend ────────────────────────────
-async function parseWithAI(text) {
-  try {
-    return await API.parseBill(text);
-  } catch (error) {
-    console.error('Parse API Error:', error);
-    throw error;
-  }
-}
 
 async function loadPDFJS() {
   if (pdfjsLib) return pdfjsLib;
