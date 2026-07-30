@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LeapStack AI · VLM Claims</title>
-  <!-- Fonts & base styles -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing:border-box; margin:0; padding:0; }
@@ -19,6 +18,7 @@
       --font-ui:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
       --radius:8px; --radius-lg:12px;
     }
+    * { box-sizing:border-box; margin:0; padding:0; }
     body { background:var(--bg-deep); color:var(--text-primary); font-family:var(--font-ui); min-height:100vh; padding:20px; display:flex; align-items:center; justify-content:center; }
     .app { max-width:1400px; margin:0 auto; width:100%; }
     .view { display:none; }
@@ -52,6 +52,9 @@
     .btn-success:hover:not(:disabled) { background:#2ecc71; transform:translateY(-1px); }
     .btn-danger { background:var(--red); color:#fff; }
     .btn-danger:hover:not(:disabled) { background:#dc2626; transform:translateY(-1px); }
+    .btn-process { background:var(--brand-blue); color:#fff; box-shadow:0 0 20px rgba(26,90,158,0.3); }
+    .btn-process:hover:not(:disabled) { background:#2a6aae; transform:translateY(-1px); }
+    .btn-process:disabled { opacity:0.4; cursor:not-allowed; }
     .panel {
       background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; display:flex; flex-direction:column;
     }
@@ -60,6 +63,28 @@
     .panel-badge { font-family:var(--font-mono); font-size:9px; padding:2px 8px; border-radius:3px; background:var(--bg-deep); border:1px solid var(--border); color:var(--text-muted); }
     .panel-badge.has-content { border-color:var(--accent); color:var(--accent); }
     .panel-body { padding:16px; flex:1; min-height:200px; max-height:500px; overflow-y:auto; }
+    .policy-checklist-container { 
+      max-height:200px; 
+      overflow-y:auto; 
+      border:1px solid var(--border); 
+      border-radius:var(--radius); 
+      padding:6px; 
+      background:var(--bg-deep);
+    }
+    .policy-checklist-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .policy-checklist-container::-webkit-scrollbar-track {
+      background: var(--bg-deep);
+      border-radius: 3px;
+    }
+    .policy-checklist-container::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    .policy-checklist-container::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
     .drop-zone { border:2px dashed var(--border); border-radius:var(--radius); padding:24px; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--bg-deep); }
     .drop-zone:hover { border-color:var(--accent); background:rgba(0,212,170,0.04); }
     .drop-zone .icon { font-size:32px; display:block; margin-bottom:8px; }
@@ -76,8 +101,8 @@
     .status-dot.rejected { background:var(--red); box-shadow:0 0 16px var(--red-glow); }
     .status-dot.pending { background:var(--yellow); animation:pulse 1.2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-    .result-body { padding:16px; max-height:600px; overflow-y:auto; }
-    .charge-item { padding:10px 14px; margin-bottom:6px; border-radius:var(--radius); background:var(--bg-deep); border-left:4px solid var(--border); font-family:var(--font-mono); font-size:11px; line-height:1.6; }
+    .result-body { padding:16px; overflow-y:auto; }
+    .charge-item { padding:10px 14px; margin-bottom:4px; border-radius:var(--radius); background:var(--bg-deep); border-left:4px solid var(--border); font-family:var(--font-mono); font-size:11px; line-height:1.6; }
     .charge-item.pass { border-left-color:var(--green); }
     .charge-item.fail { border-left-color:var(--red); background:rgba(239,68,68,0.06); }
     .charge-item.warning { border-left-color:var(--yellow); background:rgba(234,179,8,0.06); }
@@ -85,6 +110,9 @@
     .summary-card { background:var(--bg-deep); padding:10px 14px; border-radius:var(--radius); border:1px solid var(--border); }
     .summary-card .label { font-size:9px; color:var(--text-muted); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.05em; }
     .summary-card .value { font-size:14px; font-weight:600; color:var(--text-primary); }
+    .summary-card .value.positive { color:var(--green); }
+    .summary-card .value.negative { color:var(--red); }
+    .summary-card .value.warning-value { color:var(--yellow); }
     .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(60px); background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:8px 20px; font-family:var(--font-mono); font-size:11px; color:var(--text-primary); opacity:0; transition:all 0.3s ease; z-index:100; white-space:nowrap; }
     .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
     .pipeline-steps { display:flex; gap:8px; padding:8px 12px; background:var(--bg-deep); border-radius:var(--radius); border:1px solid var(--border); margin-top:6px; flex-wrap:wrap; align-items:center; }
@@ -92,17 +120,8 @@
     .pipeline-steps .step.active { color:var(--accent); background:rgba(0,212,170,0.1); border:1px solid var(--accent); }
     .pipeline-steps .step.done { color:var(--green); background:rgba(34,197,94,0.1); border:1px solid var(--green); }
     .pipeline-steps .step .arrow { color:var(--text-muted); margin:0 2px; }
-    .json-output { margin-top:8px; padding:10px; background:var(--bg-deep); border-radius:var(--radius); border:1px solid var(--border); max-height:300px; overflow-y:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-secondary); display:none; white-space:pre-wrap; word-break:break-all; }
     .export-section { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; padding:10px 12px; background:var(--bg-deep); border-radius:var(--radius); border:1px solid var(--border); }
     .export-section .label { font-size:9px; color:var(--text-muted); font-family:var(--font-mono); align-self:center; }
-    .readable-bill { background:var(--bg-deep); border-radius:var(--radius); padding:12px; border:1px solid var(--border); margin-top:8px; font-size:11px; font-family:var(--font-mono); }
-    .readable-bill .section-title { color:var(--accent); font-weight:600; margin:8px 0 4px; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; }
-    .readable-bill .field { display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid var(--border); }
-    .readable-bill .field .label { color:var(--text-muted); }
-    .readable-bill .charge-row { display:flex; justify-content:space-between; padding:2px 0 2px 12px; border-left:2px solid var(--border); margin:2px 0; font-size:10px; }
-    .validation-decision { padding:12px 16px; border-radius:var(--radius); font-weight:700; font-family:var(--font-mono); font-size:14px; margin:8px 0; text-align:center; border:1px solid; }
-    .validation-decision.approved { background:rgba(34,197,94,0.15); border-color:var(--green); color:var(--green); }
-    .validation-decision.rejected { background:rgba(239,68,68,0.15); border-color:var(--red); color:var(--red); }
     .empty-result { text-align:center; padding:40px 20px; color:var(--text-muted); }
     .empty-result .icon { font-size:40px; display:block; margin-bottom:12px; opacity:0.3; }
     .view-nav { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
@@ -114,6 +133,20 @@
     .form-group { margin-bottom:12px; }
     .form-group label { font-size:10px; color:var(--text-muted); font-family:var(--font-mono); display:block; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.05em; }
     .policy-list { margin-top:12px; max-height:200px; overflow-y:auto; }
+    .policy-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .policy-list::-webkit-scrollbar-track {
+      background: var(--bg-deep);
+      border-radius: 3px;
+    }
+    .policy-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    .policy-list::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
     .policy-item { background:var(--bg-deep); border:1px solid var(--border); border-radius:var(--radius); padding:8px 12px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; font-size:10px; font-family:var(--font-mono); }
     .policy-item .name { color:var(--text-secondary); }
     .policy-item .badge { font-size:8px; background:var(--bg-surface); padding:2px 8px; border-radius:10px; }
@@ -123,355 +156,521 @@
       align-items: center;
       gap: 10px;
       padding: 6px 10px;
-      background: var(--bg-deep);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      margin-bottom: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
+      background:var(--bg-deep);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      margin-bottom:4px;
+      cursor:pointer;
+      transition:all 0.2s;
     }
-    .policy-select-item:hover { border-color: var(--accent); background: rgba(0,212,170,0.05); }
-    .policy-select-item.selected { border-color: var(--green); background: rgba(34,197,94,0.1); }
-    .policy-select-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-    .policy-select-item .policy-name { flex: 1; color: var(--text-secondary); font-size: 11px; font-family: var(--font-mono); }
-    .policy-select-item .policy-chars { font-size: 8px; color: var(--text-muted); }
+    .policy-select-item:hover { border-color:var(--accent); background:rgba(0,212,170,0.05); }
+    .policy-select-item.selected { border-color:var(--green); background:rgba(34,197,94,0.1); }
+    .policy-select-item input[type="checkbox"] { width:16px; height:16px; cursor:pointer; accent-color:var(--accent); }
+    .policy-select-item .policy-name { flex:1; color:var(--text-secondary); font-size:11px; font-family:var(--font-mono); }
+    .policy-select-item .policy-chars { font-size:8px; color:var(--text-muted); }
 
     .chat-drawer {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 999;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
+      position:fixed;
+      bottom:20px;
+      right:20px;
+      z-index:999;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
     }
     .chat-drawer-handle {
-      background: var(--mistral-purple);
-      color: #fff;
-      border: none;
-      border-radius: 40px;
-      padding: 10px 18px;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 20px var(--mistral-glow);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s ease;
+      background:var(--mistral-purple);
+      color:#fff;
+      border:none;
+      border-radius:40px;
+      padding:10px 18px;
+      font-family:var(--font-mono);
+      font-size:12px;
+      font-weight:600;
+      cursor:pointer;
+      box-shadow:0 4px 20px var(--mistral-glow);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      transition:all 0.2s ease;
     }
-    .chat-drawer-handle:hover { transform: scale(1.03); background: #7d6ff0; }
+    .chat-drawer-handle:hover { transform:scale(1.03); background:#7d6ff0; }
     .chat-drawer-handle .badge-dot { width:10px; height:10px; background:#22c55e; border-radius:50%; display:inline-block; animation:pulse 1.5s infinite; }
     .chat-drawer-body {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      width: 420px;
-      max-width: 90vw;
-      max-height: 500px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
-      transform: translateY(20px) scale(0.95);
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-      margin-bottom: 8px;
-      transform-origin: bottom right;
+      background:var(--bg-panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius-lg);
+      width:420px;
+      max-width:90vw;
+      max-height:500px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      box-shadow:0 20px 60px rgba(0,0,0,0.7);
+      transform:translateY(20px) scale(0.95);
+      opacity:0;
+      pointer-events:none;
+      transition:all 0.25s cubic-bezier(0.22,1,0.36,1);
+      margin-bottom:8px;
+      transform-origin:bottom right;
     }
     .chat-drawer-body.open {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-      pointer-events: auto;
+      transform:translateY(0) scale(1);
+      opacity:1;
+      pointer-events:auto;
     }
     .chat-drawer-body .chat-header {
-      background: var(--bg-surface);
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
+      background:var(--bg-surface);
+      padding:10px 16px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-shrink:0;
     }
     .chat-drawer-body .chat-header .title {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      font-family:var(--font-mono);
+      font-size:11px;
+      color:var(--text-secondary);
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
     .chat-drawer-body .chat-header .title .ai-badge {
-      background: var(--mistral-purple);
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 8px;
-      letter-spacing: 0.05em;
+      background:var(--mistral-purple);
+      color:#fff;
+      padding:2px 8px;
+      border-radius:12px;
+      font-size:8px;
+      letter-spacing:0.05em;
     }
     .chat-drawer-body .chat-messages {
-      padding: 12px 16px;
-      overflow-y: auto;
-      background: var(--bg-deep);
-      flex: 1;
-      min-height: 120px;
-      max-height: 280px;
+      padding:12px 16px;
+      overflow-y:auto;
+      background:var(--bg-deep);
+      flex:1;
+      min-height:120px;
+      max-height:280px;
     }
     .chat-drawer-body .chat-message {
-      margin-bottom: 6px;
-      padding: 8px 12px;
-      border-radius: var(--radius);
-      font-size: 11px;
-      line-height: 1.6;
-      max-width: 88%;
-      animation: fadeIn 0.3s ease;
+      margin-bottom:6px;
+      padding:8px 12px;
+      border-radius:var(--radius);
+      font-size:11px;
+      line-height:1.6;
+      max-width:88%;
+      animation:fadeIn 0.3s ease;
     }
     .chat-drawer-body .chat-message.user {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      margin-left: auto;
-      border-bottom-right-radius: 4px;
+      background:var(--bg-surface);
+      border:1px solid var(--border);
+      margin-left:auto;
+      border-bottom-right-radius:4px;
     }
     .chat-drawer-body .chat-message.ai {
-      background: rgba(108,92,231,0.12);
-      border: 1px solid rgba(108,92,231,0.25);
-      margin-right: auto;
-      border-bottom-left-radius: 4px;
+      background:rgba(108,92,231,0.12);
+      border:1px solid rgba(108,92,231,0.25);
+      margin-right:auto;
+      border-bottom-left-radius:4px;
     }
     .chat-drawer-body .chat-message .sender {
-      font-size: 8px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 2px;
-      font-family: var(--font-mono);
-      letter-spacing: 0.05em;
+      font-size:8px;
+      font-weight:600;
+      color:var(--text-muted);
+      margin-bottom:2px;
+      font-family:var(--font-mono);
+      letter-spacing:0.05em;
     }
-    .chat-drawer-body .chat-message.user .sender { color: var(--accent); }
-    .chat-drawer-body .chat-message.ai .sender { color: #a29bfe; }
+    .chat-drawer-body .chat-message.user .sender { color:var(--accent); }
+    .chat-drawer-body .chat-message.ai .sender { color:#a29bfe; }
     .chat-drawer-body .chat-input-area {
-      display: flex;
-      gap: 8px;
-      padding: 8px 16px;
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-      flex-wrap: wrap;
-      align-items: center;
+      display:flex;
+      gap:8px;
+      padding:8px 16px;
+      background:var(--bg-surface);
+      border-top:1px solid var(--border);
+      flex-shrink:0;
+      flex-wrap:wrap;
+      align-items:center;
     }
     .chat-drawer-body .chat-input-area input {
-      flex: 1;
-      min-width: 100px;
-      background: var(--bg-deep);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 6px 12px;
-      font-family: var(--font-ui);
-      font-size: 11px;
-      color: var(--text-primary);
-      outline: none;
+      flex:1;
+      min-width:100px;
+      background:var(--bg-deep);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:6px 12px;
+      font-family:var(--font-ui);
+      font-size:11px;
+      color:var(--text-primary);
+      outline:none;
     }
-    .chat-drawer-body .chat-input-area input:focus { border-color: var(--accent); }
+    .chat-drawer-body .chat-input-area input:focus { border-color:var(--accent); }
     .chat-drawer-body .suggested-questions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      padding: 6px 12px;
-      background: var(--bg-deep);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      margin: 4px 12px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      padding:6px 12px;
+      background:var(--bg-deep);
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      margin:4px 12px;
     }
     .chat-drawer-body .suggested-questions .q-btn {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2px 10px;
-      font-size: 8px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-family: var(--font-mono);
-      transition: all 0.15s;
+      background:var(--bg-surface);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:2px 10px;
+      font-size:8px;
+      color:var(--text-secondary);
+      cursor:pointer;
+      font-family:var(--font-mono);
+      transition:all 0.15s;
     }
     .chat-drawer-body .suggested-questions .q-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: rgba(0,212,170,0.06);
+      border-color:var(--accent);
+      color:var(--accent);
+      background:rgba(0,212,170,0.06);
     }
     .chat-drawer-body .model-status {
-      font-size: 8px;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      font-size:8px;
+      color:var(--text-muted);
+      font-family:var(--font-mono);
+      display:flex;
+      align-items:center;
+      gap:4px;
     }
     .chat-drawer-body .model-status .dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      display: inline-block;
+      width:6px; height:6px;
+      border-radius:50%;
+      display:inline-block;
     }
-    .chat-drawer-body .model-status .dot.ready { background: var(--green); }
-    .chat-drawer-body .model-status .dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
-    .chat-drawer-body .model-status .dot.error { background: var(--red); }
+    .chat-drawer-body .model-status .dot.ready { background:var(--green); }
+    .chat-drawer-body .model-status .dot.loading { background:var(--yellow); animation:pulse 1s infinite; }
+    .chat-drawer-body .model-status .dot.error { background:var(--red); }
     .chat-drawer-body .api-config {
-      background: var(--bg-deep);
-      border-radius: var(--radius);
-      padding: 6px 12px;
-      margin: 4px 12px 8px;
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
+      background:var(--bg-deep);
+      border-radius:var(--radius);
+      padding:6px 12px;
+      margin:4px 12px 8px;
+      border:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex-wrap:wrap;
     }
     .chat-drawer-body .api-config .label {
-      font-size: 8px;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
+      font-size:8px;
+      color:var(--text-muted);
+      font-family:var(--font-mono);
     }
     .chat-drawer-body .api-config input {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 3px 8px;
-      font-size: 9px;
-      color: var(--text-primary);
-      outline: none;
-      flex: 1;
-      min-width: 80px;
+      background:var(--bg-surface);
+      border:1px solid var(--border);
+      border-radius:4px;
+      padding:3px 8px;
+      font-size:9px;
+      color:var(--text-primary);
+      outline:none;
+      flex:1;
+      min-width:80px;
     }
     .chat-drawer-body .api-config select {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 3px 6px;
-      font-size: 8px;
-      color: var(--text-primary);
-      outline: none;
-      cursor: pointer;
+      background:var(--bg-surface);
+      border:1px solid var(--border);
+      border-radius:4px;
+      padding:3px 6px;
+      font-size:8px;
+      color:var(--text-primary);
+      outline:none;
+      cursor:pointer;
     }
-    .chat-drawer-body .api-config .btn-sm { padding: 2px 8px; font-size: 8px; }
+    .chat-drawer-body .api-config .btn-sm { padding:2px 8px; font-size:8px; }
     @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
     
     .server-status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 10px;
-      font-family: var(--font-mono);
-      color: var(--text-muted);
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:10px;
+      font-family:var(--font-mono);
+      color:var(--text-muted);
     }
     .server-status .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      display: inline-block;
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      display:inline-block;
     }
-    .server-status .dot.online { background: var(--green); }
-    .server-status .dot.offline { background: var(--red); }
+    .server-status .dot.online { background:var(--green); }
+    .server-status .dot.offline { background:var(--red); }
 
     .selected-policies-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 8px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px;
+      margin-top:8px;
     }
     .selected-policy-tag {
-      background: var(--bg-surface);
-      border: 1px solid var(--green);
-      border-radius: 12px;
-      padding: 2px 10px;
-      font-size: 9px;
-      font-family: var(--font-mono);
-      color: var(--green);
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+      background:var(--bg-surface);
+      border:1px solid var(--green);
+      border-radius:12px;
+      padding:2px 10px;
+      font-size:9px;
+      font-family:var(--font-mono);
+      color:var(--green);
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
     }
     .selected-policy-tag .remove {
-      cursor: pointer;
-      color: var(--text-muted);
-      font-size: 10px;
+      cursor:pointer;
+      color:var(--text-muted);
+      font-size:10px;
     }
-    .selected-policy-tag .remove:hover { color: var(--red); }
+    .selected-policy-tag .remove:hover { color:var(--red); }
 
     .auth-container {
-      max-width: 440px;
-      margin: 40px auto;
-      padding: 32px;
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      max-width:440px;
+      margin:40px auto;
+      padding:32px;
+      background:var(--bg-panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius-lg);
     }
     .auth-container .auth-title {
-      font-size: 20px;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 8px;
+      font-size:20px;
+      font-weight:700;
+      text-align:center;
+      margin-bottom:8px;
     }
-    .auth-container .auth-title span { color: var(--accent); }
+    .auth-container .auth-title span { color:var(--accent); }
     .auth-container .auth-subtitle {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-      margin-bottom: 24px;
+      text-align:center;
+      color:var(--text-muted);
+      font-size:13px;
+      margin-bottom:24px;
     }
     .auth-container .auth-toggle {
-      text-align: center;
-      margin-top: 16px;
-      font-size: 12px;
-      color: var(--text-muted);
+      text-align:center;
+      margin-top:16px;
+      font-size:12px;
+      color:var(--text-muted);
     }
     .auth-container .auth-toggle a {
-      color: var(--accent);
-      cursor: pointer;
-      text-decoration: none;
+      color:var(--accent);
+      cursor:pointer;
+      text-decoration:none;
     }
-    .auth-container .auth-toggle a:hover { text-decoration: underline; }
-    .auth-container .form-group { margin-bottom: 16px; }
-    .auth-container .form-group label { font-size: 11px; color: var(--text-secondary); text-transform: none; letter-spacing: 0; }
-    .auth-container .form-group input { padding: 10px 14px; font-size: 13px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); width: 100%; }
-    .auth-container .form-group input:focus { border-color: var(--accent); outline: none; }
-    .auth-container .btn { width: 100%; justify-content: center; padding: 12px; font-size: 13px; }
+    .auth-container .auth-toggle a:hover { text-decoration:underline; }
+    .auth-container .form-group { margin-bottom:16px; }
+    .auth-container .form-group label { font-size:11px; color:var(--text-secondary); text-transform:none; letter-spacing:0; }
+    .auth-container .form-group input { padding:10px 14px; font-size:13px; background:var(--bg-deep); border:1px solid var(--border); border-radius:var(--radius); color:var(--text-primary); width:100%; }
+    .auth-container .form-group input:focus { border-color:var(--accent); outline:none; }
+    .auth-container .btn { width:100%; justify-content:center; padding:12px; font-size:13px; }
     .auth-container .auth-error {
-      background: rgba(239,68,68,0.15);
-      border: 1px solid var(--red);
-      color: var(--red);
-      padding: 8px 12px;
-      border-radius: var(--radius);
-      font-size: 12px;
-      margin-bottom: 12px;
-      display: none;
+      background:rgba(239,68,68,0.15);
+      border:1px solid var(--red);
+      color:var(--red);
+      padding:8px 12px;
+      border-radius:var(--radius);
+      font-size:12px;
+      margin-bottom:12px;
+      display:none;
     }
     .auth-container .auth-success {
-      background: rgba(34,197,94,0.15);
-      border: 1px solid var(--green);
-      color: var(--green);
-      padding: 8px 12px;
-      border-radius: var(--radius);
-      font-size: 12px;
-      margin-bottom: 12px;
-      display: none;
+      background:rgba(34,197,94,0.15);
+      border:1px solid var(--green);
+      color:var(--green);
+      padding:8px 12px;
+      border-radius:var(--radius);
+      font-size:12px;
+      margin-bottom:12px;
+      display:none;
     }
     .user-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-family: var(--font-mono);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      color:var(--text-secondary);
+      font-family:var(--font-mono);
     }
     .user-badge .logout-btn {
-      background: none;
-      border: none;
-      color: var(--red);
-      cursor: pointer;
-      font-size: 11px;
-      font-family: var(--font-mono);
+      background:none;
+      border:none;
+      color:var(--red);
+      cursor:pointer;
+      font-size:11px;
+      font-family:var(--font-mono);
     }
-    .user-badge .logout-btn:hover { text-decoration: underline; }
+    .user-badge .logout-btn:hover { text-decoration:underline; }
+
+    .policy-display {
+      background:var(--bg-deep);
+      border-radius:var(--radius);
+      padding:12px;
+      border:1px solid var(--border);
+      margin-top:8px;
+      font-size:11px;
+      font-family:var(--font-mono);
+      max-height:300px;
+      overflow-y:auto;
+    }
+    .policy-display::-webkit-scrollbar {
+      width: 6px;
+    }
+    .policy-display::-webkit-scrollbar-track {
+      background: var(--bg-deep);
+      border-radius: 3px;
+    }
+    .policy-display::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    .policy-display::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+    .policy-display .section-title {
+      color:var(--accent);
+      font-weight:600;
+      margin:8px 0 4px;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:0.05em;
+    }
+    .policy-display .field {
+      display:flex;
+      justify-content:space-between;
+      padding:2px 0;
+      border-bottom:1px solid var(--border);
+    }
+    .policy-display .field .label { color:var(--text-muted); }
+    .policy-display .field .value { color:var(--text-primary); }
+    .policy-display .benefit-item {
+      display:flex;
+      justify-content:space-between;
+      padding:3px 0 3px 12px;
+      border-left:2px solid var(--accent);
+      margin:2px 0;
+      font-size:10px;
+    }
+    .policy-display .benefit-item .cat { color:var(--text-secondary); }
+    .policy-display .benefit-item .limit { color:var(--accent); font-weight:600; }
+    .policy-display .benefit-item .section-ref { color:var(--text-muted); font-size:8px; }
+    .policy-display .exclusion-item {
+      padding:2px 0 2px 12px;
+      border-left:2px solid var(--red);
+      margin:2px 0;
+      font-size:9px;
+      color:var(--text-muted);
+    }
+    .reimbursement-summary {
+      background:var(--bg-surface);
+      border-radius:var(--radius);
+      padding:12px 16px;
+      margin:10px 0;
+      border:1px solid var(--accent);
+    }
+    .reimbursement-summary .total {
+      font-size:20px;
+      font-weight:700;
+      color:var(--green);
+    }
+    .reimbursement-summary .breakdown {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:4px 16px;
+      margin-top:6px;
+      font-size:10px;
+      color:var(--text-secondary);
+    }
+    .status-section {
+      margin:8px 0;
+      padding:10px 14px;
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+    }
+    .status-section .section-title {
+      font-weight:600;
+      font-size:11px;
+      margin-bottom:6px;
+      font-family:var(--font-mono);
+    }
+    .status-section.pass-section { border-color:var(--green); background:rgba(34,197,94,0.05); }
+    .status-section.pass-section .section-title { color:var(--green); }
+    .status-section.fail-section { border-color:var(--red); background:rgba(239,68,68,0.05); }
+    .status-section.fail-section .section-title { color:var(--red); }
+    .status-section.warning-section { border-color:var(--yellow); background:rgba(234,179,8,0.05); }
+    .status-section.warning-section .section-title { color:var(--yellow); }
+    .status-section .charge-item { margin-bottom:4px; }
+    .status-section .charge-item:last-child { margin-bottom:0; }
+
+    .result-container {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      width:100%;
+    }
+    .result-container .status-section {
+      margin:0;
+    }
+
+    .history-table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:10px;
+      font-family:var(--font-mono);
+      margin-top:8px;
+    }
+    .history-table th {
+      text-align:left;
+      color:var(--text-muted);
+      font-weight:600;
+      padding:6px 8px;
+      border-bottom:1px solid var(--border);
+      text-transform:uppercase;
+      font-size:8px;
+      letter-spacing:0.05em;
+    }
+    .history-table td {
+      padding:6px 8px;
+      border-bottom:1px solid var(--border-light);
+      color:var(--text-secondary);
+    }
+    .history-table tr:hover td {
+      background:rgba(47,137,139,0.05);
+    }
+    .history-table .yearly-limit-warning {
+      color:var(--yellow);
+      font-weight:600;
+    }
+    .history-table .yearly-limit-exceeded {
+      color:var(--red);
+      font-weight:600;
+    }
+    .history-summary {
+      display:flex;
+      gap:16px;
+      flex-wrap:wrap;
+      padding:8px 12px;
+      background:var(--bg-deep);
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      margin-bottom:8px;
+    }
+    .history-summary .stat {
+      font-size:10px;
+      font-family:var(--font-mono);
+      color:var(--text-muted);
+    }
+    .history-summary .stat .num {
+      color:var(--text-primary);
+      font-weight:600;
+    }
+    .history-summary .stat .num.green { color:var(--green); }
+    .history-summary .stat .num.red { color:var(--red); }
+    .history-summary .stat .num.yellow { color:var(--yellow); }
   </style>
 </head>
 <body>
@@ -486,7 +685,6 @@
       <div id="authError" class="auth-error"></div>
       <div id="authSuccess" class="auth-success"></div>
       
-      <!-- Sign In Form -->
       <div id="signInForm">
         <div class="form-group">
           <label>👤 Company ID</label>
@@ -502,7 +700,6 @@
         </div>
       </div>
       
-      <!-- Sign Up Form -->
       <div id="signUpForm" style="display:none;">
         <div class="form-group">
           <label>🏢 Company Name</label>
@@ -528,7 +725,7 @@
     </div>
   </div>
 
-  <!-- ========== MAIN APP VIEW (protected) ========== -->
+  <!-- ========== MAIN APP VIEW ========== -->
   <div id="viewApp" style="display:none;">
     <header>
       <div class="logo-area"><div class="logo-icon">🏥</div><span class="logo-text">Leapstack<span> AI Claims</span></span></div>
@@ -548,11 +745,11 @@
       </div>
     </header>
 
-    <!-- Navigation tabs -->
     <div class="view-nav" id="navTabs">
       <button class="btn active-tab" data-view="viewSetup">🔐 Setup</button>
       <button class="btn" data-view="viewPolicy" id="navPolicy" disabled>📜 Policies</button>
       <button class="btn" data-view="viewBill" id="navBill" disabled>📄 Bill Validation</button>
+      <button class="btn" data-view="viewHistory" id="navHistory" disabled>📊 History</button>
     </div>
 
     <!-- VIEW: Setup -->
@@ -596,6 +793,21 @@
       </div>
     </div>
 
+    <!-- VIEW: History -->
+    <div id="viewHistory" class="view">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-label">📊 CLAIM HISTORY</span>
+          <button class="btn btn-secondary btn-sm" onclick="refreshHistory()" style="margin-left:auto;">🔄 Refresh</button>
+        </div>
+        <div class="panel-body" style="max-height:none;overflow-y:visible;">
+          <div id="historyContent">
+            <div style="color:var(--text-muted);font-size:11px;padding:20px;text-align:center;">No claims processed yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- VIEW: Bill Validation -->
     <div id="viewBill" class="view">
       <div class="grid">
@@ -603,7 +815,6 @@
           <div class="panel-header">
             <span class="panel-label">📄 MEDICAL BILL</span>
             <span class="panel-badge" id="ip-badge">EMPTY</span>
-            <span class="panel-badge" id="policyRefBadge" style="display:none;">📜</span>
             <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;">
               <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('ip-file-input').click()">📎 Upload TXT</button>
               <button class="btn btn-pdf" style="padding:4px 10px;font-size:9px;" onclick="document.getElementById('pdf-file-input').click()">📄 Upload PDF</button>
@@ -648,7 +859,6 @@
           </div>
         </div>
 
-        <!-- Multi-Select Policy Panel -->
         <div class="panel">
           <div class="panel-header">
             <span class="panel-label">📜 SELECT POLICIES</span>
@@ -657,7 +867,7 @@
           <div class="panel-body">
             <div class="form-group">
               <label>Select policies to apply (check all that apply)</label>
-              <div id="policyChecklist" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:6px;background:var(--bg-deep);">
+              <div id="policyChecklist" class="policy-checklist-container">
                 <div style="color:var(--text-muted);font-size:11px;padding:12px;text-align:center;">Loading policies...</div>
               </div>
             </div>
@@ -665,13 +875,10 @@
               <button class="btn btn-success btn-sm" id="loadSelectedPoliciesBtn">📂 Load Selected Policies</button>
               <button class="btn btn-secondary btn-sm" id="clearSelectedPoliciesBtn">✕ Clear All</button>
             </div>
-            <div id="selectedPoliciesDisplay" style="margin-top:8px;display:none;">
-              <div style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:4px;">Loaded Policies:</div>
-              <div class="selected-policies-list" id="selectedPoliciesList"></div>
+            <div id="policyDisplayArea" style="display:none;margin-top:8px;">
+              <div id="policyDisplayContent" class="policy-display"></div>
             </div>
-            <div style="margin-top:8px;">
-              <textarea id="policy-text" placeholder="Combined policy text will appear here..." style="height:150px;width:100%;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);resize:vertical;"></textarea>
-            </div>
+            <textarea id="policy-text" style="display:none;"></textarea>
           </div>
         </div>
       </div>
@@ -680,6 +887,7 @@
         <button class="btn btn-vlm" onclick="runFullPipeline()" id="pipelineBtn">🚀 VLM OCR → AI Clean → Parse → Validate</button>
         <button class="btn btn-secondary" onclick="runVLMOnly()" id="vlmBtn">👁️ VLM OCR Only (PDF → Text)</button>
         <button class="btn btn-primary" id="validate-btn" onclick="validate()" disabled>🔍 Validate Against Policy</button>
+        <button class="btn btn-process" id="processBtn" onclick="processAndSaveClaim()" disabled>💾 Process & Save Claim</button>
         <button class="btn btn-secondary" onclick="clearAll()">🔄 Reset All</button>
       </div>
 
@@ -688,7 +896,6 @@
           <div class="result-status"><div class="status-dot pending" id="result-dot"></div><span id="result-label">Awaiting validation</span></div>
           <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
             <span class="file-info" id="result-metrics">—</span>
-            <button class="btn btn-secondary" style="padding:4px 10px;font-size:9px;" onclick="copyResult()" id="copy-result-btn" disabled>📋 Copy</button>
           </div>
         </div>
         <div class="result-body" id="result-body">
@@ -699,10 +906,7 @@
           <span class="label">📤 Export:</span>
           <button class="btn btn-export btn-sm" style="background:#2e7d32;color:#fff;" onclick="exportTXT()">📄 TXT</button>
           <button class="btn btn-export-json btn-sm" style="background:#1565c0;color:#fff;" onclick="exportJSON()">📊 JSON</button>
-          <button class="btn btn-secondary btn-sm" onclick="toggleJSONPreview()">👁️ JSON</button>
-          <span style="font-size:8px;color:var(--text-muted);font-family:var(--font-mono);margin-left:auto;">AI-parsed data</span>
         </div>
-        <div id="jsonPreview" class="json-output"></div>
       </div>
     </div>
   </div>
@@ -737,7 +941,7 @@
         <div class="suggested-questions" id="suggestedQuestions">
           <span style="font-size:7px;color:var(--text-muted);font-family:var(--font-mono);align-self:center;">Quick:</span>
           <button class="q-btn" onclick="runFullPipeline()">🚀 Full Pipeline</button>
-          <button class="q-btn" onclick="validate()">🔍 Validate</button>
+          <button class="q-btn" onclick="processAndSaveClaim()">💾 Process & Save</button>
           <button class="q-btn" onclick="askQuestion('Summarize all charges and highlight any that may exceed policy limits.')">📋 Review</button>
         </div>
       </div>
@@ -759,14 +963,10 @@ function safeGetElement(id) {
   if (!el) console.warn(`Element with id '${id}' not found`);
   return el;
 }
-function safeSetText(id, text) {
+
+function safeSetDisabled(id, disabled) {
   const el = safeGetElement(id);
-  if (el) { el.textContent = text; return true; }
-  return false;
-}
-function safeSetDisplay(id, display) {
-  const el = safeGetElement(id);
-  if (el) { el.style.display = display; return true; }
+  if (el) { el.disabled = disabled; return true; }
   return false;
 }
 
@@ -907,6 +1107,8 @@ function showApp(user) {
   resetPipelineSteps();
   checkReady();
   document.getElementById('chatDrawerWrapper').style.display = 'block';
+  document.getElementById('navHistory').disabled = false;
+  renderHistory();
   showToast('🏥 Welcome, ' + (user.companyName || user.companyId) + '!');
 }
 
@@ -922,18 +1124,24 @@ document.getElementById('logoutBtn').addEventListener('click', function() {
   }
 });
 
-// ─── API CLIENT (only for database operations) ──────────────
+// ─── API CLIENT ──────────────────────────────────────────────
 const API = {
-  baseUrl: window.location.origin + '/api',
   async request(endpoint, options = {}) {
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      console.log('📡 API Request:', url, options.method || 'GET');
+      
+      const response = await fetch(url, {
         ...options,
-        headers: { 'Content-Type': 'application/json', ...options.headers }
+        headers: { 
+          'Content-Type': 'application/json',
+          ...options.headers 
+        }
       });
+      
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'API request failed');
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
       }
       return response.json();
     } catch (error) {
@@ -941,26 +1149,60 @@ const API = {
       throw error;
     }
   },
-  async getPolicies(companyId) { if (!companyId) return []; return this.request(`/policies/company/${encodeURIComponent(companyId)}`); },
+  async getPolicies(companyId) { 
+    if (!companyId) return []; 
+    try {
+      return await this.request(`/api/policies/company/${encodeURIComponent(companyId)}`);
+    } catch (e) {
+      console.error('Failed to fetch policies:', e);
+      return [];
+    }
+  },
   async createPolicy(companyId, name, text, extractedText = '', fileInfo = {}) {
-    return this.request('/policies', {
+    return this.request('/api/policies', {
       method: 'POST',
       body: JSON.stringify({ companyId, name, text, extractedText, fileInfo })
     });
   },
-  async deletePolicy(id) { return this.request(`/policies/${id}`, { method: 'DELETE' }); },
-  async saveBill(billData) { return this.request('/bills', { method: 'POST', body: JSON.stringify(billData) }); },
-  async getBills(companyId) { if (!companyId) return []; return this.request(`/bills/company/${encodeURIComponent(companyId)}`); },
-  async health() { return this.request('/health'); }
+  async deletePolicy(id) { 
+    return this.request(`/api/policies/${id}`, { method: 'DELETE' }); 
+  },
+  async saveBill(billData) { 
+    return this.request('/api/bills', { 
+      method: 'POST', 
+      body: JSON.stringify(billData) 
+    }); 
+  },
+  async getBills(companyId) { 
+    if (!companyId) return []; 
+    try {
+      return await this.request(`/api/bills/company/${encodeURIComponent(companyId)}`);
+    } catch (e) {
+      console.error('Failed to fetch bills:', e);
+      return [];
+    }
+  },
+  async health() { 
+    try {
+      const response = await this.request('/health');
+      return response;
+    } catch (error) {
+      console.error('Health check error:', error);
+      throw error;
+    }
+  }
 };
 
 // ─── DATA LAYER ──────────────────────────────────────────────
 const DB = {
-  getCompanyId() { return document.getElementById('companyIdInput').value.trim() || 'default'; },
+  getCompanyId() { 
+    return document.getElementById('companyIdInput').value.trim() || 'default'; 
+  },
   async getPolicies() {
-    try { return await API.getPolicies(this.getCompanyId()); } catch (e) {
+    try { 
+      return await API.getPolicies(this.getCompanyId()); 
+    } catch (e) {
       console.error('Failed to fetch policies:', e);
-      showToast('⚠️ Failed to load policies from server');
       return [];
     }
   },
@@ -976,19 +1218,164 @@ const DB = {
     }
   },
   async deletePolicy(id) {
-    try { await API.deletePolicy(id); showToast('🗑️ Policy deleted from database'); } catch (e) {
+    try { 
+      const result = await API.deletePolicy(id); 
+      if (result && result.success) {
+        showToast('🗑️ Policy deleted');
+      }
+      return result;
+    } catch (e) {
       console.error('Failed to delete policy:', e);
-      showToast('❌ Failed to delete policy: ' + e.message);
+      showToast('❌ Failed to delete policy');
       throw e;
     }
   },
   async saveBill(billData) {
-    try { const result = await API.saveBill(billData); console.log('Bill saved:', result); return result; } catch (e) {
+    try { 
+      const result = await API.saveBill(billData); 
+      console.log('💾 Bill saved:', result); 
+      return result; 
+    } catch (e) {
       console.error('Failed to save bill:', e);
+      showToast('❌ Failed to save bill: ' + e.message);
       return null;
+    }
+  },
+  async getBills() {
+    try { 
+      return await API.getBills(this.getCompanyId()); 
+    } catch (e) {
+      console.error('Failed to fetch bills:', e);
+      return [];
     }
   }
 };
+
+// ─── SERVER CONNECTION CHECK ─────────────────────────────────
+async function checkServerConnection() {
+  const serverDot = document.getElementById('serverDot');
+  const serverStatusText = document.getElementById('serverStatusText');
+  
+  try {
+    console.log('🔍 Checking server connection...');
+    const response = await fetch('/health');
+    
+    if (response.ok) {
+      serverDot.className = 'dot online';
+      serverStatusText.textContent = '✅ Server Online';
+      console.log('✅ Server connected successfully');
+      return true;
+    }
+    
+    throw new Error('Server not responding');
+  } catch (e) {
+    console.error('⚠️ Server connection failed:', e.message);
+    serverDot.className = 'dot offline';
+    serverStatusText.textContent = '⚠️ Server Offline';
+    showToast('⚠️ Cannot connect to server. Please make sure the server is running on port 3000');
+    return false;
+  }
+}
+
+// ─── HISTORY ──────────────────────────────────────────────────
+let claimHistory = [];
+const YEARLY_LIMIT = 1000000;
+
+async function renderHistory() {
+  const container = document.getElementById('historyContent');
+  try {
+    const companyId = DB.getCompanyId();
+    if (!companyId) {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:20px;text-align:center;">Please setup your company first.</div>';
+      return;
+    }
+    
+    claimHistory = await DB.getBills();
+    if (!claimHistory || claimHistory.length === 0) {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:20px;text-align:center;">No claims processed yet. Process a claim to see it here.</div>';
+      return;
+    }
+    
+    claimHistory.sort((a, b) => new Date(b.createdAt || b.savedAt || 0) - new Date(a.createdAt || a.savedAt || 0));
+    
+    const patientYearlyTotals = {};
+    let totalReimbursementAll = 0;
+    
+    for (const claim of claimHistory) {
+      const patientId = claim.patientId || 'Unknown';
+      const year = claim.createdAt ? new Date(claim.createdAt).getFullYear() : 
+                   claim.savedAt ? new Date(claim.savedAt).getFullYear() : 
+                   new Date().getFullYear();
+      const key = `${patientId}_${year}`;
+      if (!patientYearlyTotals[key]) {
+        patientYearlyTotals[key] = { patientId, year, total: 0, claims: [] };
+      }
+      const reimbursement = claim.totalReimbursement || 0;
+      patientYearlyTotals[key].total += reimbursement;
+      patientYearlyTotals[key].claims.push(claim);
+      totalReimbursementAll += reimbursement;
+    }
+    
+    let html = '';
+    
+    html += `<div class="history-summary">`;
+    html += `<span class="stat">📊 Total Claims: <span class="num">${claimHistory.length}</span></span>`;
+    html += `<span class="stat">💰 Total Reimbursement: <span class="num green">HK$ ${totalReimbursementAll.toFixed(2)}</span></span>`;
+    html += `<span class="stat">👤 Patients: <span class="num">${Object.keys(patientYearlyTotals).length}</span></span>`;
+    html += `</div>`;
+    
+    for (const [key, data] of Object.entries(patientYearlyTotals)) {
+      const remaining = YEARLY_LIMIT - data.total;
+      const isNearLimit = remaining < 50000 && remaining > 0;
+      const isExceeded = remaining < 0;
+      
+      html += `<div style="margin:12px 0;padding:10px 14px;background:var(--bg-deep);border-radius:var(--radius);border:1px solid var(--border);">`;
+      html += `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">`;
+      html += `<div><strong style="color:var(--text-primary);">👤 ${data.patientId}</strong> <span style="color:var(--text-muted);font-size:10px;">(${data.year})</span></div>`;
+      html += `<div style="font-size:10px;font-family:var(--font-mono);">`;
+      html += `Used: <span class="num ${isExceeded ? 'red' : isNearLimit ? 'yellow' : ''}">HK$ ${data.total.toFixed(2)}</span>`;
+      html += ` / Yearly Limit: <span class="num">HK$ ${YEARLY_LIMIT.toFixed(2)}</span>`;
+      if (isExceeded) {
+        html += ` <span class="num red">⚠️ EXCEEDED by HK$ ${Math.abs(remaining).toFixed(2)}</span>`;
+      } else if (isNearLimit) {
+        html += ` <span class="num yellow">⚠️ ${remaining.toFixed(2)} remaining</span>`;
+      } else {
+        html += ` <span class="num green">${remaining.toFixed(2)} remaining</span>`;
+      }
+      html += `</div></div>`;
+      
+      html += `<table class="history-table">`;
+      html += `<thead><tr><th>Date</th><th>Bill No.</th><th>Patient</th><th>Hospital</th><th>Total</th><th>Reimbursement</th></tr></thead>`;
+      html += `<tbody>`;
+      for (const claim of data.claims) {
+        const date = claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : 
+                     claim.savedAt ? new Date(claim.savedAt).toLocaleDateString() : 
+                     'N/A';
+        html += `<tr>`;
+        html += `<td>${date}</td>`;
+        html += `<td>${claim.billNumber || 'N/A'}</td>`;
+        html += `<td>${claim.patientName || claim.patientId || 'N/A'}</td>`;
+        html += `<td>${claim.hospital || 'N/A'}</td>`;
+        html += `<td>HK$ ${(claim.grandTotal || 0).toFixed(2)}</td>`;
+        html += `<td style="color:var(--green);font-weight:600;">HK$ ${(claim.totalReimbursement || 0).toFixed(2)}</td>`;
+        html += `</tr>`;
+      }
+      html += `</tbody></table>`;
+      html += `</div>`;
+    }
+    
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('Failed to render history:', error);
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:20px;text-align:center;">Unable to load history. Please check server connection.</div>';
+  }
+}
+
+async function refreshHistory() {
+  showToast('🔄 Refreshing history...');
+  await renderHistory();
+  showToast('✅ History refreshed');
+}
 
 // ─── CHAT DRAWER TOGGLE ──────────────────────────────────────
 let chatOpen = false;
@@ -1015,6 +1402,7 @@ function checkSetupComplete() {
   setupComplete = !!company;
   document.getElementById('navPolicy').disabled = !setupComplete;
   document.getElementById('navBill').disabled = !setupComplete;
+  document.getElementById('navHistory').disabled = !setupComplete;
   if (!setupComplete) {
     document.getElementById('setupStatus').textContent = '⚠️ Please enter a Company ID.';
     document.getElementById('setupStatus').style.color = 'var(--yellow)';
@@ -1029,8 +1417,9 @@ function checkSetupComplete() {
 document.querySelectorAll('[data-view]').forEach(btn => {
   btn.addEventListener('click', function() {
     const viewId = this.dataset.view;
-    if (viewId === 'viewPolicy' || viewId === 'viewBill') {
-      if (!setupComplete) { showToast('⚠️ Please complete Setup first (Company ID).'); return; }
+    if ((viewId === 'viewPolicy' || viewId === 'viewBill' || viewId === 'viewHistory') && !setupComplete) { 
+      showToast('⚠️ Please complete Setup first (Company ID).'); 
+      return; 
     }
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
@@ -1039,6 +1428,11 @@ document.querySelectorAll('[data-view]').forEach(btn => {
     if (viewId === 'viewBill') {
       renderPolicyChecklist();
       document.getElementById('chatDrawerWrapper').style.display = 'block';
+    } else if (viewId === 'viewHistory') {
+      renderHistory();
+      document.getElementById('chatDrawerWrapper').style.display = 'none';
+      chatOpen = false;
+      document.getElementById('chatDrawerBody').classList.remove('open');
     } else {
       document.getElementById('chatDrawerWrapper').style.display = 'none';
       chatOpen = false;
@@ -1047,29 +1441,6 @@ document.querySelectorAll('[data-view]').forEach(btn => {
     if (viewId === 'viewPolicy') renderPolicyList();
   });
 });
-
-// ─── SERVER CONNECTION CHECK ─────────────────────────────────
-async function checkServerConnection() {
-  try {
-    const response = await fetch(window.location.origin + '/api/health');
-    if (response.ok) {
-      document.getElementById('serverDot').className = 'dot online';
-      document.getElementById('serverStatusText').textContent = '✅ Server Online';
-    } else throw new Error('Server returned error');
-  } catch (e) {
-    try {
-      const rootResponse = await fetch(window.location.origin);
-      if (rootResponse.ok) {
-        document.getElementById('serverDot').className = 'dot online';
-        document.getElementById('serverStatusText').textContent = '✅ Server Connected';
-        return;
-      }
-    } catch (rootError) {}
-    document.getElementById('serverDot').className = 'dot offline';
-    document.getElementById('serverStatusText').textContent = '⚠️ Server Connection Issue';
-    showToast('⚠️ Cannot connect to backend server.');
-  }
-}
 
 document.getElementById('saveSetupBtn').addEventListener('click', function() {
   const company = document.getElementById('companyIdInput').value.trim();
@@ -1080,6 +1451,7 @@ document.getElementById('saveSetupBtn').addEventListener('click', function() {
     showToast('✅ Setup saved! You can now access Policies.');
     document.getElementById('navPolicy').disabled = false;
     document.getElementById('navBill').disabled = false;
+    document.getElementById('navHistory').disabled = false;
     document.querySelector('[data-view="viewPolicy"]').click();
     document.getElementById('chatDrawerWrapper').style.display = 'none';
   }
@@ -1087,12 +1459,11 @@ document.getElementById('saveSetupBtn').addEventListener('click', function() {
 
 document.getElementById('companyIdInput').addEventListener('input', checkSetupComplete);
 
-// ─── MISTRAL HELPERS (DIRECT API CALLS) ──────────────────────
+// ─── MISTRAL HELPERS ──────────────────────────────────────
 function getApiKey() {
   return document.getElementById('apiKeyInput').value.trim();
 }
 
-// Direct Mistral API call for text
 async function callMistralText(messages, model = null) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('Please enter your Mistral API key');
@@ -1111,7 +1482,6 @@ async function callMistralText(messages, model = null) {
   return data.choices[0].message.content || '';
 }
 
-// ─── DIRECT VLM OCR (Mistral Pixtral) ──────────────────────
 async function callVLMOCR(imageData, pageNum, totalPages) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('Please enter your Mistral API key');
@@ -1155,7 +1525,6 @@ async function callVLMOCR(imageData, pageNum, totalPages) {
   return data.choices[0].message.content || '';
 }
 
-// ─── AI CLEAN (DIRECT MISTRAL) ──────────────────────────────
 async function cleanWithAI(text) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('Please enter your Mistral API key');
@@ -1185,8 +1554,7 @@ Return ONLY the cleaned text.`;
   return cleaned;
 }
 
-// ─── AI PARSE (DIRECT MISTRAL) ──────────────────────────────
-async function parseWithAI(text) {
+async function parseBillWithAI(text) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('Please enter your Mistral API key');
   
@@ -1205,6 +1573,8 @@ OUTPUT FORMAT:
   "depositPaid": 0.00,
   "grandTotal": 0.00,
   "balanceDue": 0.00,
+  "totalDiscount": 0.00,
+  "netAmount": 0.00,
   "charges": [
     {
       "date": "YYYY-MM-DD or null",
@@ -1212,7 +1582,8 @@ OUTPUT FORMAT:
       "description": "Charge description",
       "category": "accommodation|laboratory|pharmacy|treatment|surgery|cardiac|dietary|supplies|doctor_fee|admission|other",
       "amount": 0.00,
-      "discount": 0.00
+      "discount": 0.00,
+      "netAmount": 0.00
     }
   ],
   "notes": "Any additional notes or null"
@@ -1223,17 +1594,201 @@ ${text}
 
 Return ONLY the JSON.`;
   const resp = await callMistralText([
-    { role: 'system', content: 'You are a precise medical bill parser. Return ONLY valid JSON.' },
+    { role: 'system', content: 'You are a precise medical bill parser. Extract discount amounts and calculate net amounts. Return ONLY valid JSON.' },
     { role: 'user', content: prompt }
   ]);
   let jsonStr = resp.replace(/```json\s*/g, '').replace(/```\s*/g, '');
   const data = JSON.parse(jsonStr);
+  
+  if (data.charges) {
+    for (const charge of data.charges) {
+      if (charge.discount && charge.amount) {
+        charge.netAmount = charge.amount - charge.discount;
+      } else if (charge.amount) {
+        charge.netAmount = charge.amount;
+      }
+    }
+  }
+  
+  if (!data.totalDiscount && data.charges) {
+    data.totalDiscount = data.charges.reduce((sum, c) => sum + (c.discount || 0), 0);
+  }
+  
+  if (!data.netAmount && data.grandTotal && data.totalDiscount) {
+    data.netAmount = data.grandTotal - data.totalDiscount;
+  } else if (!data.netAmount && data.grandTotal) {
+    data.netAmount = data.grandTotal;
+  }
+  
   updatePipelineStep('stepParse', 'done');
   addChatMessage('ai', `✅ Parsed ${(data.charges || []).length} charges!`);
   return data;
 }
 
-// Test API key
+async function parsePolicyWithAI(text) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('Please enter your Mistral API key');
+  
+  addChatMessage('ai', '📜 Parsing policy to extract benefit schedule...');
+  const prompt = `You are an expert insurance policy parser. Extract the BENEFIT SCHEDULE and coverage rules from this insurance policy document.
+
+Return ONLY valid JSON in this format:
+{
+  "policyName": "Policy name or null",
+  "policyNumber": "Policy number or null",
+  "effectiveDate": "YYYY-MM-DD or null",
+  "expiryDate": "YYYY-MM-DD or null",
+  "benefitSchedule": {
+    "accommodation": {
+      "maxDaily": 0.00,
+      "maxDays": 0,
+      "section": "Section reference (e.g. 3(a))",
+      "description": "Description of coverage"
+    },
+    "surgery": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(b))",
+      "description": "Description of coverage"
+    },
+    "anesthesia": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(c))",
+      "description": "Description of coverage"
+    },
+    "doctorFee": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(d))",
+      "description": "Description of coverage"
+    },
+    "laboratory": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(e))",
+      "description": "Description of coverage"
+    },
+    "pharmacy": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(f))",
+      "description": "Description of coverage"
+    },
+    "treatment": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(g))",
+      "description": "Description of coverage"
+    },
+    "cardiac": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(h))",
+      "description": "Description of coverage"
+    },
+    "dietary": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(i))",
+      "description": "Description of coverage"
+    },
+    "supplies": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(j))",
+      "description": "Description of coverage"
+    },
+    "admission": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(k))",
+      "description": "Description of coverage"
+    },
+    "other": {
+      "maxAmount": 0.00,
+      "section": "Section reference (e.g. 3(l))",
+      "description": "Description of coverage"
+    }
+  },
+  "generalExclusions": ["List of exclusions"],
+  "conditionsForCoverage": ["List of conditions"],
+  "notes": "Any additional notes or null"
+}
+
+POLICY TEXT:
+${text}
+
+Return ONLY the JSON.`;
+  const resp = await callMistralText([
+    { role: 'system', content: 'You are a precise insurance policy parser. Extract benefit schedule and return ONLY valid JSON.' },
+    { role: 'user', content: prompt }
+  ]);
+  let jsonStr = resp.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+  const data = JSON.parse(jsonStr);
+  addChatMessage('ai', `✅ Policy parsed! Benefit schedule extracted.`);
+  return data;
+}
+
+async function validateWithAI(billData, policyData) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('Please enter your Mistral API key');
+  
+  addChatMessage('ai', '🔍 Validating bill against policy...');
+  const prompt = `You are an expert insurance claims validator. Validate this medical bill against the policy benefit schedule and calculate the total reimbursement amount.
+
+BILL DATA:
+${JSON.stringify(billData, null, 2)}
+
+POLICY DATA:
+${JSON.stringify(policyData, null, 2)}
+
+For each charge, use the netAmount (amount - discount) for validation.
+Calculate:
+- totalApproved = sum of all PASS charge net amounts
+- totalRejected = sum of rejected portions from FAIL charges
+- totalWarning = sum of WARNING charge net amounts
+- totalReimbursement = totalApproved
+
+Return ONLY valid JSON in this format:
+{
+  "chargeResults": [
+    {
+      "chargeIndex": 0,
+      "description": "Charge description",
+      "amount": 0.00,
+      "discount": 0.00,
+      "netAmount": 0.00,
+      "category": "accommodation|surgery|anesthesia|doctorFee|laboratory|pharmacy|treatment|cardiac|dietary|supplies|admission|other",
+      "policyLimit": 0.00,
+      "status": "PASS" or "FAIL" or "WARNING",
+      "reason": "Detailed reason for the decision",
+      "approvedAmount": 0.00,
+      "rejectedAmount": 0.00,
+      "section": "Section reference from policy"
+    }
+  ],
+  "issues": ["List of any issues found"],
+  "reimbursementBreakdown": [...],
+  "summary": "Brief summary of the validation"
+}`;
+  const resp = await callMistralText([
+    { role: 'system', content: 'You are a precise insurance claims validator. Return ONLY valid JSON.' },
+    { role: 'user', content: prompt }
+  ]);
+  let jsonStr = resp.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+  const data = JSON.parse(jsonStr);
+  
+  let totalApproved = 0, totalRejected = 0, totalWarning = 0;
+  for (const r of data.chargeResults || []) {
+    if (r.status === 'PASS') totalApproved += r.approvedAmount || r.netAmount || r.amount;
+    else if (r.status === 'FAIL') {
+      totalRejected += r.rejectedAmount || 0;
+      totalApproved += r.approvedAmount || 0;
+    } else if (r.status === 'WARNING') {
+      totalWarning += r.netAmount || r.amount || 0;
+    }
+  }
+  data.totalApproved = totalApproved;
+  data.totalRejected = totalRejected;
+  data.totalWarning = totalWarning;
+  data.totalReimbursement = totalApproved;
+  data.totalCharges = billData.grandTotal || 0;
+  
+  addChatMessage('ai', `✅ Validation complete! Total reimbursement: HK$ ${(data.totalReimbursement || 0).toFixed(2)}`);
+  return data;
+}
+
 async function testApiKey() {
   const key = getApiKey();
   if (!key) { addChatMessage('ai', '⚠️ Enter API key.'); return; }
@@ -1255,6 +1810,94 @@ async function testApiKey() {
   }
 }
 
+// ─── POLICY DISPLAY ──────────────────────────────────────────
+function displayPolicy(policyData) {
+  const displayArea = document.getElementById('policyDisplayArea');
+  const content = document.getElementById('policyDisplayContent');
+  
+  if (!policyData || !policyData.benefitSchedule) {
+    displayArea.style.display = 'none';
+    return;
+  }
+  
+  displayArea.style.display = 'block';
+  let html = '';
+  
+  html += `<div class="section-title">📋 Policy Information</div>`;
+  if (policyData.policyName) {
+    html += `<div class="field"><span class="label">Policy Name</span><span class="value">${policyData.policyName}</span></div>`;
+  }
+  if (policyData.policyNumber) {
+    html += `<div class="field"><span class="label">Policy Number</span><span class="value">${policyData.policyNumber}</span></div>`;
+  }
+  if (policyData.effectiveDate) {
+    html += `<div class="field"><span class="label">Effective Date</span><span class="value">${policyData.effectiveDate}</span></div>`;
+  }
+  if (policyData.expiryDate) {
+    html += `<div class="field"><span class="label">Expiry Date</span><span class="value">${policyData.expiryDate}</span></div>`;
+  }
+  
+  html += `<div class="section-title" style="margin-top:12px;">💰 Benefit Schedule</div>`;
+  const categories = [
+    { key: 'accommodation', label: 'Accommodation' },
+    { key: 'surgery', label: 'Surgery' },
+    { key: 'anesthesia', label: 'Anesthesia' },
+    { key: 'doctorFee', label: 'Doctor Fee' },
+    { key: 'laboratory', label: 'Laboratory' },
+    { key: 'pharmacy', label: 'Pharmacy' },
+    { key: 'treatment', label: 'Treatment' },
+    { key: 'cardiac', label: 'Cardiac' },
+    { key: 'dietary', label: 'Dietary' },
+    { key: 'supplies', label: 'Supplies' },
+    { key: 'admission', label: 'Admission' },
+    { key: 'other', label: 'Other' }
+  ];
+  
+  let hasBenefits = false;
+  for (const cat of categories) {
+    const benefit = policyData.benefitSchedule[cat.key];
+    if (benefit && (benefit.maxAmount !== null || benefit.maxDaily !== null)) {
+      hasBenefits = true;
+      let limitText = '';
+      if (benefit.maxDaily) {
+        limitText = `HK$ ${benefit.maxDaily.toFixed(2)}/day`;
+        if (benefit.maxDays) limitText += ` × ${benefit.maxDays} days`;
+      } else if (benefit.maxAmount) {
+        limitText = `HK$ ${benefit.maxAmount.toFixed(2)}`;
+      } else {
+        limitText = 'Covered';
+      }
+      html += `<div class="benefit-item">`;
+      html += `<span class="cat">${cat.label}</span>`;
+      html += `<span class="limit">${limitText}`;
+      if (benefit.section) html += ` <span class="section-ref">(${benefit.section})</span>`;
+      html += `</span>`;
+      html += `</div>`;
+    }
+  }
+  
+  if (policyData.generalExclusions && policyData.generalExclusions.length > 0) {
+    html += `<div class="section-title" style="margin-top:12px;">🚫 Exclusions</div>`;
+    for (const exclusion of policyData.generalExclusions) {
+      html += `<div class="exclusion-item">• ${exclusion}</div>`;
+    }
+  }
+  
+  if (policyData.conditionsForCoverage && policyData.conditionsForCoverage.length > 0) {
+    html += `<div class="section-title" style="margin-top:12px;">✅ Conditions for Coverage</div>`;
+    for (const condition of policyData.conditionsForCoverage) {
+      html += `<div class="exclusion-item" style="border-left-color:var(--green);">• ${condition}</div>`;
+    }
+  }
+  
+  if (policyData.notes) {
+    html += `<div class="section-title" style="margin-top:12px;">📝 Notes</div>`;
+    html += `<div style="font-size:10px;color:var(--text-muted);">${policyData.notes}</div>`;
+  }
+  
+  content.innerHTML = html;
+}
+
 // ─── POLICY VIEW ──────────────────────────────────────────────
 async function renderPolicyList() {
   const container = document.getElementById('policyList');
@@ -1270,19 +1913,18 @@ async function renderPolicyList() {
     let html = '';
     policies.forEach(p => {
       const policyId = p._id || p.id;
-      const hasExtracted = p.extractedText && p.extractedText.length > 0;
       const fileInfo = p.fileInfo || {};
+      const hasParsed = fileInfo.parsedPolicy && fileInfo.parsedPolicy.benefitSchedule;
       html += `<div class="policy-item">
         <div style="display:flex;flex-direction:column;gap:2px;">
           <span class="name">📜 ${p.name}</span>
           <span style="font-size:8px;color:var(--text-muted);">
             ${p.text.length} chars
-            ${hasExtracted ? ` · 📄 Extracted: ${p.extractedText.length} chars` : ''}
             ${fileInfo.fileName ? ` · ${fileInfo.fileName}` : ''}
+            ${hasParsed ? ' · ✅ Parsed' : ''}
           </span>
         </div>
         <div style="display:flex;gap:4px;">
-          ${hasExtracted ? `<button class="btn btn-secondary btn-sm" onclick="viewExtractedText('${policyId}')">👁️ View</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="loadPolicyToForm('${policyId}')">📂 Load</button>
           <button class="btn btn-secondary btn-sm" style="color:var(--red);" onclick="deletePolicy('${policyId}')">✕</button>
         </div>
@@ -1291,20 +1933,8 @@ async function renderPolicyList() {
     container.innerHTML = html;
   } catch (error) {
     console.error('Failed to render policy list:', error);
-    if (container) container.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;">❌ Failed to load policies</div>';
+    if (container) container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;">No policies available</div>';
   }
-}
-
-function viewExtractedText(id) {
-  DB.getPolicies().then(policies => {
-    const policy = policies.find(p => p._id === id || p.id === id);
-    if (!policy) { showToast('Policy not found'); return; }
-    if (policy.extractedText && policy.extractedText.length > 0) {
-      alert(`Extracted Text from ${policy.fileInfo?.fileName || 'PDF'}:\n\n${policy.extractedText.substring(0, 2000)}${policy.extractedText.length > 2000 ? '\n\n... (truncated)' : ''}`);
-    } else {
-      showToast('No extracted text available for this policy');
-    }
-  });
 }
 
 window.loadPolicyToForm = async function(id) {
@@ -1331,11 +1961,19 @@ document.getElementById('savePolicyBtn').addEventListener('click', async functio
   if (!name) { showToast('⚠️ Enter a policy name.'); return; }
   if (!text) { showToast('⚠️ Enter policy text.'); return; }
   try {
+    let parsedPolicy = null;
+    try {
+      parsedPolicy = await parsePolicyWithAI(text);
+    } catch (e) {
+      console.warn('Policy parsing failed, storing text only:', e);
+    }
+    
     await DB.addPolicy(name, text, extractedText, {
       fileName: fileName,
       fileSize: parseInt(document.getElementById('policyTextInput').dataset.fileSize) || 0,
       fileType: fileName.endsWith('.pdf') ? 'application/pdf' : 'text/plain',
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
+      parsedPolicy: parsedPolicy
     });
     await renderPolicyList();
     await renderPolicyChecklist();
@@ -1435,9 +2073,10 @@ async function renderPolicyChecklist() {
     policies.forEach(p => {
       const policyId = p._id || p.id;
       const isChecked = selectedPolicyIds.includes(policyId);
+      const hasParsed = p.fileInfo && p.fileInfo.parsedPolicy && p.fileInfo.parsedPolicy.benefitSchedule;
       html += `<div class="policy-select-item ${isChecked ? 'selected' : ''}" onclick="togglePolicy('${policyId}')">
         <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); togglePolicy('${policyId}')" />
-        <span class="policy-name">📜 ${p.name}</span>
+        <span class="policy-name">📜 ${p.name} ${hasParsed ? '✅' : ''}</span>
         <span class="policy-chars">${p.text.length} chars</span>
       </div>`;
     });
@@ -1445,7 +2084,7 @@ async function renderPolicyChecklist() {
     updateSelectedPoliciesBadge();
   } catch (error) {
     console.error('Failed to render policy checklist:', error);
-    if (container) container.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;">❌ Failed to load policies</div>';
+    if (container) container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:12px;">No policies available</div>';
   }
 }
 
@@ -1458,9 +2097,7 @@ function togglePolicy(id) {
 
 function updateSelectedPoliciesBadge() {
   const badge = document.getElementById('selectedPoliciesBadge');
-  const display = document.getElementById('selectedPoliciesDisplay');
   if (badge) badge.textContent = selectedPolicyIds.length + ' selected';
-  if (display) display.style.display = selectedPolicyIds.length > 0 ? 'block' : 'none';
 }
 
 document.getElementById('loadSelectedPoliciesBtn').addEventListener('click', async function() {
@@ -1469,43 +2106,53 @@ document.getElementById('loadSelectedPoliciesBtn').addEventListener('click', asy
     const policies = await DB.getPolicies();
     const selectedPolicies = policies.filter(p => selectedPolicyIds.includes(p._id || p.id));
     let combinedText = '';
-    const selectedNames = [];
+    let combinedParsedPolicy = { benefitSchedule: {} };
+    
     for (const policy of selectedPolicies) {
       combinedText += `=== ${policy.name} ===\n${policy.text}\n\n`;
-      selectedNames.push(policy.name);
+      
+      if (policy.fileInfo && policy.fileInfo.parsedPolicy) {
+        const parsed = policy.fileInfo.parsedPolicy;
+        if (parsed.benefitSchedule) {
+          for (const [key, value] of Object.entries(parsed.benefitSchedule)) {
+            if (value && (value.maxAmount !== null && value.maxAmount !== undefined || value.maxDaily !== null)) {
+              if (!combinedParsedPolicy.benefitSchedule[key] || 
+                  (value.maxAmount && (!combinedParsedPolicy.benefitSchedule[key].maxAmount || value.maxAmount > combinedParsedPolicy.benefitSchedule[key].maxAmount))) {
+                combinedParsedPolicy.benefitSchedule[key] = value;
+              }
+            }
+          }
+        }
+        if (parsed.policyName && !combinedParsedPolicy.policyName) combinedParsedPolicy.policyName = parsed.policyName;
+        if (parsed.policyNumber && !combinedParsedPolicy.policyNumber) combinedParsedPolicy.policyNumber = parsed.policyNumber;
+        if (parsed.effectiveDate && !combinedParsedPolicy.effectiveDate) combinedParsedPolicy.effectiveDate = parsed.effectiveDate;
+        if (parsed.expiryDate && !combinedParsedPolicy.expiryDate) combinedParsedPolicy.expiryDate = parsed.expiryDate;
+        if (parsed.generalExclusions) {
+          combinedParsedPolicy.generalExclusions = [...(combinedParsedPolicy.generalExclusions || []), ...parsed.generalExclusions];
+        }
+        if (parsed.conditionsForCoverage) {
+          combinedParsedPolicy.conditionsForCoverage = [...(combinedParsedPolicy.conditionsForCoverage || []), ...parsed.conditionsForCoverage];
+        }
+      }
     }
+    
     document.getElementById('policy-text').value = combinedText.trim();
-    document.getElementById('selectedPolicyBadge').textContent = selectedNames.join(', ');
-    document.getElementById('selectedPolicyBadge').classList.add('has-content');
-    const tagsContainer = document.getElementById('selectedPoliciesList');
-    tagsContainer.innerHTML = selectedPolicies.map(p => 
-      `<span class="selected-policy-tag">
-        📜 ${p.name}
-        <span class="remove" onclick="removeSelectedPolicy('${p._id || p.id}')">×</span>
-      </span>`
-    ).join('');
-    document.getElementById('selectedPoliciesDisplay').style.display = 'block';
-    showToast(`✅ Loaded ${selectedPolicies.length} policies (${combinedText.length} chars total)`);
+    window.combinedParsedPolicy = combinedParsedPolicy;
+    displayPolicy(combinedParsedPolicy);
+    
+    showToast(`✅ Loaded ${selectedPolicies.length} policies`);
     checkReady();
   } catch (error) {
     showToast('❌ Failed to load policies: ' + error.message);
   }
 });
 
-function removeSelectedPolicy(id) {
-  selectedPolicyIds = selectedPolicyIds.filter(p => p !== id);
-  renderPolicyChecklist();
-  document.getElementById('loadSelectedPoliciesBtn').click();
-}
-
 document.getElementById('clearSelectedPoliciesBtn').addEventListener('click', function() {
   selectedPolicyIds = [];
   renderPolicyChecklist();
   document.getElementById('policy-text').value = '';
-  document.getElementById('selectedPolicyBadge').textContent = 'None';
-  document.getElementById('selectedPolicyBadge').classList.remove('has-content');
-  document.getElementById('selectedPoliciesDisplay').style.display = 'none';
-  document.getElementById('selectedPoliciesList').innerHTML = '';
+  document.getElementById('policyDisplayArea').style.display = 'none';
+  window.combinedParsedPolicy = null;
   checkReady();
 });
 
@@ -1528,7 +2175,6 @@ async function loadPDFJS() {
   } catch (e) { throw new Error('Failed to load PDF.js: ' + e.message); }
 }
 
-// ─── PDF → IMAGES + VLM OCR ──────────────────────────────────
 async function pdfToImages(file) {
   const progressDiv = document.getElementById('pdf-progress');
   const progressBar = document.getElementById('pdfProgressBar');
@@ -1633,7 +2279,6 @@ function fallbackClean(text) {
   return t.replace(/[ \t]{2,}/g, ' ');
 }
 
-// ─── PIPELINE STEPS ──────────────────────────────────────────
 function updatePipelineStep(stepId, status) {
   const el = document.getElementById(stepId);
   if (!el) return;
@@ -1661,8 +2306,11 @@ async function runFullPipeline() {
   if (!apiKey) { showToast('⚠️ Please enter your Mistral API key in the chat drawer.'); return; }
 
   const pipelineBtn = document.getElementById('pipelineBtn');
-  pipelineBtn.disabled = true;
-  pipelineBtn.textContent = '⏳ Processing...';
+  if (pipelineBtn) {
+    pipelineBtn.disabled = true;
+    pipelineBtn.textContent = '⏳ Processing...';
+  }
+  
   document.getElementById('result-dot').className = 'status-dot pending';
   document.getElementById('result-label').textContent = '🔄 Running pipeline...';
   document.getElementById('result-metrics').textContent = '⏳ Processing';
@@ -1682,18 +2330,15 @@ async function runFullPipeline() {
     }
     updatePipelineStep('stepClean', 'done');
 
-    const data = await parseWithAI(cleaned);
+    const data = await parseBillWithAI(cleaned);
     parsedBillData = data;
     currentCharges = data.charges || [];
     displayParsedBill(data);
 
-    const companyId = document.getElementById('companyIdInput').value.trim();
-    await DB.saveBill({ ...data, companyId });
-
     const policyText = document.getElementById('policy-text').value.trim();
     if (policyText) {
       updatePipelineStep('stepValidate', 'active');
-      validate();
+      await validate();
       updatePipelineStep('stepValidate', 'done');
     } else {
       document.getElementById('result-dot').className = 'status-dot approved';
@@ -1701,9 +2346,6 @@ async function runFullPipeline() {
       document.getElementById('result-metrics').textContent = `🏥 ${data.hospital || 'Unknown'} · ${currentCharges.length} charges · HK$ ${(data.grandTotal || 0).toFixed(2)}`;
       updatePipelineStep('stepValidate', 'done');
     }
-    const preview = document.getElementById('jsonPreview');
-    preview.textContent = JSON.stringify(data, null, 2);
-    preview.style.display = 'block';
     checkReady();
     addChatMessage('ai', `✅ Pipeline complete! Found ${currentCharges.length} charges. Total: HK$ ${(data.grandTotal || 0).toFixed(2)}`);
     showToast(`✅ Pipeline complete! ${currentCharges.length} charges found.`);
@@ -1714,8 +2356,10 @@ async function runFullPipeline() {
     addChatMessage('ai', `❌ Pipeline error: ${err.message}`);
     showToast('❌ Pipeline failed: ' + err.message);
   } finally {
-    pipelineBtn.disabled = false;
-    pipelineBtn.textContent = '🚀 VLM OCR → AI Clean → Parse → Validate';
+    if (pipelineBtn) {
+      pipelineBtn.disabled = false;
+      pipelineBtn.textContent = '🚀 VLM OCR → AI Clean → Parse → Validate';
+    }
   }
 }
 
@@ -1747,8 +2391,66 @@ async function runVLMOnly() {
   }
 }
 
+// ─── PROCESS AND SAVE CLAIM ─────────────────────────────────
+async function processAndSaveClaim() {
+  if (!parsedBillData || !parsedBillData.charges || parsedBillData.charges.length === 0) {
+    showToast('⚠️ Please parse a bill first. Run the pipeline above.');
+    return;
+  }
+  
+  const policyText = document.getElementById('policy-text').value.trim();
+  if (!policyText) {
+    showToast('⚠️ Please load policies first.');
+    return;
+  }
+  
+  // Check if validation was already done
+  if (!validationResult) {
+    showToast('⚠️ Please run validation first (click Validate Against Policy).');
+    return;
+  }
+  
+  const processBtn = document.getElementById('processBtn');
+  if (processBtn) {
+    processBtn.disabled = true;
+    processBtn.textContent = '⏳ Saving...';
+  }
+  
+  try {
+    const billToSave = {
+      ...parsedBillData,
+      totalReimbursement: validationResult.totalReimbursement || 0,
+      totalApproved: validationResult.totalApproved || 0,
+      totalRejected: validationResult.totalRejected || 0,
+      totalWarning: validationResult.totalWarning || 0,
+      issues: validationResult.issues || [],
+      validationResults: validationResult,
+      createdAt: new Date().toISOString(),
+      companyId: DB.getCompanyId()
+    };
+    
+    const result = await DB.saveBill(billToSave);
+    
+    if (result && result.success) {
+      showToast('✅ Claim saved successfully! View it in History tab.');
+      addChatMessage('ai', `✅ Claim saved! Reimbursement: HK$ ${(validationResult.totalReimbursement || 0).toFixed(2)}`);
+      await renderHistory();
+    } else {
+      showToast('❌ Failed to save claim');
+    }
+  } catch (error) {
+    console.error('Error saving claim:', error);
+    showToast('❌ Error saving claim: ' + error.message);
+  } finally {
+    if (processBtn) {
+      processBtn.disabled = false;
+      processBtn.textContent = '💾 Process & Save Claim';
+    }
+  }
+}
+
 // ─── VALIDATION ──────────────────────────────────────────────
-function validate() {
+async function validate() {
   if (!parsedBillData || !parsedBillData.charges) {
     showToast('⚠️ Please parse a bill first.');
     return;
@@ -1758,114 +2460,290 @@ function validate() {
     showToast('⚠️ Please load policies.');
     return;
   }
+  
   updatePipelineStep('stepValidate', 'active');
   document.getElementById('result-dot').className = 'status-dot pending';
   document.getElementById('result-label').textContent = '🔍 Validating against policy...';
   document.getElementById('result-metrics').textContent = '⏳ Analyzing';
 
-  const limits = extractPolicyLimits(policyText);
-  const results = [];
-  let passed = 0, failed = 0, warnings = 0;
-  const reasons = [];
-
-  for (const charge of parsedBillData.charges) {
-    const relevantLimits = limits.filter(l => 
-      charge.description.toLowerCase().includes(l.keyword.toLowerCase()) ||
-      l.keyword.toLowerCase().includes(charge.description.toLowerCase())
-    );
-    let status = 'pass';
-    let message = '✅ Within policy limit';
-    let limitAmount = null;
-    if (relevantLimits.length > 0) {
-      const limit = relevantLimits[0];
-      limitAmount = limit.amount;
-      if (charge.amount > limit.amount) {
-        status = 'fail';
-        message = `❌ Exceeds limit by HK$ ${(charge.amount - limit.amount).toFixed(2)} (limit: HK$ ${limit.amount.toFixed(2)})`;
-        failed++;
-        reasons.push(`Charge "${charge.description}" (HK$ ${charge.amount.toFixed(2)}) exceeds policy limit of HK$ ${limit.amount.toFixed(2)}`);
-      } else {
-        message = `✅ Within limit (limit: HK$ ${limit.amount.toFixed(2)})`;
-        passed++;
-      }
-    } else {
-      if (charge.amount > 100000) {
-        status = 'warning';
-        message = '⚠️ Unusually high amount, no specific policy limit found';
-        warnings++;
-        reasons.push(`Charge "${charge.description}" (HK$ ${charge.amount.toFixed(2)}) is unusually high with no specific policy limit.`);
-      } else {
-        passed++;
-      }
+  try {
+    let policyData = window.combinedParsedPolicy || null;
+    if (!policyData || Object.keys(policyData.benefitSchedule || {}).length === 0) {
+      policyData = await parsePolicyWithAI(policyText);
+      window.combinedParsedPolicy = policyData;
+      displayPolicy(policyData);
     }
-    results.push({ charge, status, message, limit: limitAmount });
+    
+    const validationResults = await validateWithAI(parsedBillData, policyData);
+    displayValidationResults(validationResults, parsedBillData);
+    
+    updatePipelineStep('stepValidate', 'done');
+    validationResult = validationResults;
+    
+    // Enable the process button
+    const processBtn = document.getElementById('processBtn');
+    if (processBtn) processBtn.disabled = false;
+    showToast('✅ Validation complete! Click "Process & Save Claim" to save.');
+    addChatMessage('ai', `✅ Validation complete! Ready to save. Reimbursement: HK$ ${(validationResults.totalReimbursement || 0).toFixed(2)}`);
+    
+  } catch (err) {
+    console.error('Validation error:', err);
+    const basicResults = basicValidation(parsedBillData, policyText);
+    displayValidationResults(basicResults, parsedBillData);
+    
+    updatePipelineStep('stepValidate', 'done');
+    validationResult = basicResults;
+    const processBtn = document.getElementById('processBtn');
+    if (processBtn) processBtn.disabled = false;
+    showToast('⚠️ Used basic validation (AI validation failed)');
   }
+}
 
-  const totalChecks = results.length;
-  const complianceRate = totalChecks > 0 ? (passed / totalChecks) * 100 : 0;
-  const approved = (failed === 0);
-  validationResult = { approved, reasons, complianceRate, passed, failed, warnings };
+function displayValidationResults(results, billData) {
+  const chargeResults = results.chargeResults || [];
+  const passCharges = chargeResults.filter(r => r.status === 'PASS');
+  const failCharges = chargeResults.filter(r => r.status === 'FAIL');
+  const warningCharges = chargeResults.filter(r => r.status === 'WARNING');
+  
+  const totalApproved = results.totalApproved || 0;
+  const totalRejected = results.totalRejected || 0;
+  const totalWarning = results.totalWarning || 0;
+  const totalReimbursement = results.totalReimbursement || 0;
+  const totalCharges = billData.grandTotal || 0;
+  const netTotal = billData.netAmount || totalCharges;
+  
+  document.getElementById('result-dot').className = 'status-dot approved';
+  document.getElementById('result-label').textContent = `✅ Validation Complete`;
+  document.getElementById('result-metrics').textContent = `💵 Total: HK$ ${totalCharges.toFixed(2)} · Reimbursement: HK$ ${totalReimbursement.toFixed(2)}`;
 
-  let statusText, dotClass, decisionHtml;
-  if (approved) {
-    statusText = `✅ APPROVED · All charges comply (${Math.round(complianceRate)}% compliance)`;
-    dotClass = 'status-dot approved';
-    decisionHtml = `<div class="validation-decision approved">✅ APPROVED · Bill meets all policy requirements</div>`;
-  } else {
-    statusText = `❌ REJECTED · ${failed} charge(s) exceed limits (${Math.round(complianceRate)}% compliance)`;
-    dotClass = 'status-dot rejected';
-    decisionHtml = `<div class="validation-decision rejected">❌ REJECTED · ${failed} charge(s) exceed policy limits</div>`;
-    if (reasons.length) {
-      decisionHtml += `<div style="margin:8px 0;font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);">
-        <strong>Reasons:</strong><ul style="padding-left:16px;margin:4px 0;">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>
-      </div>`;
-    }
+  let html = '';
+  
+  html += `<div class="reimbursement-summary">`;
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">`;
+  html += `<div><span style="font-size:12px;color:var(--text-secondary);">💰 Total Reimbursement</span></div>`;
+  html += `<div class="total">HK$ ${totalReimbursement.toFixed(2)}</div>`;
+  html += `</div>`;
+  html += `<div class="breakdown">`;
+  html += `<span>Grand Total: HK$ ${totalCharges.toFixed(2)}</span>`;
+  if (billData.totalDiscount) {
+    html += `<span style="color:var(--text-muted);">Discount: -HK$ ${billData.totalDiscount.toFixed(2)}</span>`;
+    html += `<span>Net Total: HK$ ${netTotal.toFixed(2)}</span>`;
   }
-
-  document.getElementById('result-dot').className = dotClass;
-  document.getElementById('result-label').textContent = statusText;
-  document.getElementById('result-metrics').textContent = `📊 ${totalChecks} charges · ${passed} passed · ${failed} failed · ${Math.round(complianceRate)}%`;
-  updatePipelineStep('stepValidate', 'done');
-
-  let html = decisionHtml || '';
-  html += `<div class="summary-grid">`;
-  const stats = [
-    { label: 'Compliance', value: Math.round(complianceRate) + '%' },
-    { label: 'Charges Checked', value: totalChecks },
-    { label: 'Passed', value: passed },
-    { label: 'Failed', value: failed },
-    { label: 'Warnings', value: warnings },
-  ];
-  for (const stat of stats) {
-    html += `<div class="summary-card"><div class="label">${stat.label}</div><div class="value">${stat.value}</div></div>`;
+  html += `<span>Approved: HK$ ${totalApproved.toFixed(2)}</span>`;
+  html += `<span>Rejected: HK$ ${totalRejected.toFixed(2)}</span>`;
+  if (totalWarning > 0) {
+    html += `<span style="color:var(--yellow);">⚠️ Needs Review: HK$ ${totalWarning.toFixed(2)}</span>`;
   }
   html += `</div>`;
-  html += `<div class="progress-container" style="background:var(--bg-deep);border-radius:var(--radius);height:6px;margin:8px 0 12px;overflow:hidden;border:1px solid var(--border);">
-    <div class="progress-fill ${complianceRate >= 80 ? '' : (complianceRate >= 50 ? 'medium' : 'low')}" style="width:${Math.min(complianceRate,100)}%;height:100%;border-radius:var(--radius);transition:width 0.5s ease;background:${complianceRate >= 80 ? 'linear-gradient(90deg,var(--green),var(--accent))' : (complianceRate >= 50 ? 'linear-gradient(90deg,var(--yellow),var(--accent))' : 'linear-gradient(90deg,var(--red),var(--yellow))')};"></div>
-  </div>`;
-
-  if (results.length > 0) {
-    html += `<div style="font-weight:600;margin:12px 0 8px;font-size:12px;">💰 Charge-by-Charge Validation</div>`;
-    for (const r of results) {
-      const statusClass = r.status === 'pass' ? 'pass' : (r.status === 'fail' ? 'fail' : 'warning');
-      const statusLabel = r.status === 'pass' ? '✅ PASS' : (r.status === 'fail' ? '❌ FAIL' : '⚠️ WARNING');
-      html += `<div class="charge-item ${statusClass}">`;
-      html += `<div class="charge-label">${r.charge.category || 'GENERAL'} · ${r.charge.description}</div>`;
-      html += `<div class="charge-detail">Amount: HK$ ${r.charge.amount.toFixed(2)}</div>`;
-      html += `<div class="charge-result ${statusClass}">${statusLabel} · ${r.message}</div>`;
-      if (r.limit) html += `<div style="font-size:9px;color:var(--text-muted);">Policy limit: HK$ ${r.limit.toFixed(2)}</div>`;
+  html += `</div>`;
+  
+  html += `<div class="summary-grid">`;
+  const stats = [
+    { label: 'Grand Total', value: 'HK$ ' + totalCharges.toFixed(2) },
+    { label: 'Reimbursement', value: 'HK$ ' + totalReimbursement.toFixed(2), positive: true },
+    { label: 'Approved', value: 'HK$ ' + totalApproved.toFixed(2), positive: true },
+    { label: 'Rejected', value: 'HK$ ' + totalRejected.toFixed(2), negative: true }
+  ];
+  if (totalWarning > 0) {
+    stats.push({ label: '⚠️ Needs Review', value: 'HK$ ' + totalWarning.toFixed(2), warning: true });
+  }
+  if (billData.totalDiscount) {
+    stats.push({ label: 'Discount', value: 'HK$ ' + billData.totalDiscount.toFixed(2) });
+  }
+  stats.push({ label: 'Items', value: chargeResults.length });
+  for (const stat of stats) {
+    let valueClass = '';
+    if (stat.positive) valueClass = 'positive';
+    if (stat.negative) valueClass = 'negative';
+    if (stat.warning) valueClass = 'warning-value';
+    html += `<div class="summary-card"><div class="label">${stat.label}</div><div class="value ${valueClass}">${stat.value}</div></div>`;
+  }
+  html += `</div>`;
+  
+  if (results.issues && results.issues.length > 0) {
+    html += `<div style="margin:8px 0;padding:8px 12px;background:rgba(234,179,8,0.1);border-radius:var(--radius);border:1px solid var(--yellow);">`;
+    html += `<div style="font-size:10px;font-weight:600;color:var(--yellow);">⚠️ Issues Found:</div>`;
+    html += `<ul style="padding-left:16px;margin:4px 0;font-size:10px;color:var(--text-secondary);">`;
+    for (const issue of results.issues) {
+      html += `<li>${issue}</li>`;
+    }
+    html += `</ul></div>`;
+  }
+  
+  if (results.summary) {
+    html += `<div style="margin:8px 0;padding:8px 12px;background:var(--bg-deep);border-radius:var(--radius);border:1px solid var(--border);font-size:10px;color:var(--text-secondary);">`;
+    html += `<strong>📋 Summary:</strong> ${results.summary}`;
+    html += `</div>`;
+  }
+  
+  html += `<div class="result-container">`;
+  
+  if (passCharges.length > 0) {
+    html += `<div class="status-section pass-section">`;
+    html += `<div class="section-title">✅ Approved (${passCharges.length})</div>`;
+    for (const r of passCharges) {
+      const netAmt = r.netAmount || r.amount || 0;
+      html += `<div class="charge-item pass">`;
+      html += `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;">`;
+      html += `<div><strong>${r.description || 'Charge'}</strong> <span style="color:var(--text-muted);font-size:10px;">(${r.category || 'other'})</span></div>`;
+      html += `<div>HK$ ${netAmt.toFixed(2)} → HK$ ${(r.approvedAmount || netAmt).toFixed(2)}</div>`;
+      html += `</div>`;
+      if (r.discount) {
+        html += `<div style="font-size:9px;color:var(--text-muted);">Discount: HK$ ${r.discount.toFixed(2)}</div>`;
+      }
+      if (r.section) {
+        html += `<div style="font-size:9px;color:var(--text-muted);">Section: ${r.section}</div>`;
+      }
       html += `</div>`;
     }
+    html += `</div>`;
   }
+  
+  if (failCharges.length > 0) {
+    html += `<div class="status-section fail-section">`;
+    html += `<div class="section-title">❌ Rejected (${failCharges.length})</div>`;
+    for (const r of failCharges) {
+      const netAmt = r.netAmount || r.amount || 0;
+      html += `<div class="charge-item fail">`;
+      html += `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;">`;
+      html += `<div><strong>${r.description || 'Charge'}</strong> <span style="color:var(--text-muted);font-size:10px;">(${r.category || 'other'})</span></div>`;
+      html += `<div>HK$ ${netAmt.toFixed(2)} → HK$ ${(r.approvedAmount || 0).toFixed(2)}</div>`;
+      html += `</div>`;
+      if (r.discount) {
+        html += `<div style="font-size:9px;color:var(--text-muted);">Discount: HK$ ${r.discount.toFixed(2)}</div>`;
+      }
+      if (r.policyLimit !== null && r.policyLimit !== undefined) {
+        html += `<div style="font-size:9px;color:var(--text-muted);">Policy Limit: HK$ ${r.policyLimit.toFixed(2)}</div>`;
+      }
+      if (r.reason) {
+        html += `<div style="font-size:9px;color:var(--red);margin-top:2px;">${r.reason}</div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  
+  if (warningCharges.length > 0) {
+    html += `<div class="status-section warning-section">`;
+    html += `<div class="section-title">⚠️ Needs Review (${warningCharges.length})</div>`;
+    for (const r of warningCharges) {
+      const netAmt = r.netAmount || r.amount || 0;
+      html += `<div class="charge-item warning">`;
+      html += `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;">`;
+      html += `<div><strong>${r.description || 'Charge'}</strong> <span style="color:var(--text-muted);font-size:10px;">(${r.category || 'other'})</span></div>`;
+      html += `<div>HK$ ${netAmt.toFixed(2)}</div>`;
+      html += `</div>`;
+      if (r.discount) {
+        html += `<div style="font-size:9px;color:var(--text-muted);">Discount: HK$ ${r.discount.toFixed(2)}</div>`;
+      }
+      if (r.reason) {
+        html += `<div style="font-size:9px;color:var(--yellow);margin-top:2px;">${r.reason}</div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  
+  html += `</div>`;
 
   document.getElementById('result-content').innerHTML = html;
   document.getElementById('result-content').style.display = 'block';
-  document.getElementById('copy-result-btn').disabled = false;
-
   const emptyResult = document.querySelector('.result-body .empty-result');
   if (emptyResult) emptyResult.style.display = 'none';
+}
 
-  addChatMessage('ai', `✅ Validation complete! ${approved ? 'APPROVED' : 'REJECTED'}. ${passed} passed, ${failed} failed.`);
+// ─── BASIC VALIDATION FALLBACK ──────────────────────────────
+function basicValidation(billData, policyText) {
+  const limits = extractPolicyLimits(policyText);
+  const results = [];
+  let totalApproved = 0;
+  let totalRejected = 0;
+  let totalWarning = 0;
+  let issues = [];
+  let categoryBreakdown = {};
+  
+  for (const charge of billData.charges || []) {
+    const netAmount = charge.netAmount || charge.amount || 0;
+    let matchingLimit = null;
+    let matchedCategory = charge.category || 'other';
+    for (const limit of limits) {
+      if (charge.description.toLowerCase().includes(limit.keyword.toLowerCase()) ||
+          limit.keyword.toLowerCase().includes(charge.description.toLowerCase())) {
+        matchingLimit = limit;
+        break;
+      }
+    }
+    
+    let status = 'PASS';
+    let reason = 'Within policy limits';
+    let approvedAmount = netAmount;
+    let rejectedAmount = 0;
+    
+    if (matchingLimit && netAmount > matchingLimit.amount) {
+      status = 'FAIL';
+      reason = `Exceeds policy limit of HK$ ${matchingLimit.amount.toFixed(2)}`;
+      approvedAmount = matchingLimit.amount;
+      rejectedAmount = netAmount - matchingLimit.amount;
+      issues.push(`Charge "${charge.description}" (HK$ ${netAmount.toFixed(2)}) exceeds limit of HK$ ${matchingLimit.amount.toFixed(2)}`);
+    }
+    
+    if (!matchingLimit && netAmount > 5000) {
+      status = 'WARNING';
+      reason = 'No specific policy limit found, amount requires review';
+      approvedAmount = 0;
+      totalWarning += netAmount;
+    }
+    
+    if (status === 'PASS') totalApproved += netAmount;
+    else if (status === 'FAIL') {
+      totalApproved += approvedAmount;
+      totalRejected += rejectedAmount;
+    }
+    
+    if (!categoryBreakdown[matchedCategory]) {
+      categoryBreakdown[matchedCategory] = { totalCharged: 0, totalApproved: 0 };
+    }
+    categoryBreakdown[matchedCategory].totalCharged += netAmount;
+    categoryBreakdown[matchedCategory].totalApproved += approvedAmount;
+    
+    results.push({
+      chargeIndex: results.length,
+      description: charge.description,
+      amount: charge.amount,
+      discount: charge.discount || 0,
+      netAmount: netAmount,
+      category: matchedCategory,
+      policyLimit: matchingLimit ? matchingLimit.amount : null,
+      status: status,
+      reason: reason,
+      approvedAmount: approvedAmount,
+      rejectedAmount: rejectedAmount,
+      section: matchingLimit ? 'Limit found' : null
+    });
+  }
+  
+  const totalCharges = billData.grandTotal || 0;
+  const netTotal = billData.netAmount || totalCharges;
+  
+  const reimbursementBreakdown = Object.entries(categoryBreakdown).map(([category, data]) => ({
+    category: category,
+    totalCharged: data.totalCharged,
+    totalApproved: data.totalApproved,
+    limit: null
+  }));
+  
+  return {
+    chargeResults: results,
+    totalApproved: totalApproved,
+    totalRejected: totalRejected,
+    totalWarning: totalWarning,
+    totalReimbursement: totalApproved,
+    totalCharges: totalCharges,
+    netTotal: netTotal,
+    issues: issues,
+    reimbursementBreakdown: reimbursementBreakdown,
+    summary: `${issues.length} issue(s) found. ${results.length} charges reviewed. Total reimbursement: HK$ ${totalApproved.toFixed(2)}`
+  };
 }
 
 function extractPolicyLimits(text) {
@@ -1897,17 +2775,26 @@ function displayParsedBill(data) {
   const dropZone = document.getElementById('bill-drop-zone');
   if (!data || !data.charges) { container.innerHTML = `<div style="color:var(--text-muted);">⚠️ No data parsed.</div>`; return; }
   let html = '';
-  html += `<div class="field"><span class="label">Hospital</span><span class="value">${data.hospital || '—'}</span></div>`;
-  html += `<div class="field"><span class="label">Patient</span><span class="value">${data.patientName || '—'}</span></div>`;
-  if (data.billNumber) html += `<div class="field"><span class="label">Bill No.</span><span class="value">${data.billNumber}</span></div>`;
-  if (data.patientId) html += `<div class="field"><span class="label">Patient ID</span><span class="value">${data.patientId}</span></div>`;
-  html += `<div class="field"><span class="label">Admission</span><span class="value">${data.admissionDate || '—'}</span></div>`;
-  html += `<div class="field"><span class="label">Discharge</span><span class="value">${data.dischargeDate || '—'}</span></div>`;
+  html += `<div class="field"><span class="label">Hospital </span><span class="value">${data.hospital || '—'}</span></div>`;
+  html += `<div class="field"><span class="label">Patient </span><span class="value">${data.patientName || '—'}</span></div>`;
+  if (data.billNumber) html += `<div class="field"><span class="label">Bill No. </span><span class="value">${data.billNumber}</span></div>`;
+  if (data.patientId) html += `<div class="field"><span class="label">Patient ID </span><span class="value">${data.patientId}</span></div>`;
+  html += `<div class="field"><span class="label">Admission </span><span class="value">${data.admissionDate || '—'}</span></div>`;
+  html += `<div class="field"><span class="label">Discharge </span><span class="value">${data.dischargeDate || '—'}</span></div>`;
   if (data.depositPaid !== null && data.depositPaid !== undefined) {
-    html += `<div class="field"><span class="label">Deposit Paid</span><span class="value amount" style="color:var(--accent);font-weight:600;">HK$ ${data.depositPaid.toFixed(2)}</span></div>`;
+    html += `<div class="field"><span class="label">Deposit Paid </span><span class="value amount" style="color:var(--accent);font-weight:600;">HK$ ${data.depositPaid.toFixed(2)}</span></div>`;
   }
   if (data.grandTotal !== null && data.grandTotal !== undefined) {
-    html += `<div class="field"><span class="label">Grand Total</span><span class="value amount" style="color:var(--accent);font-weight:600;">HK$ ${data.grandTotal.toFixed(2)}</span></div>`;
+    html += `<div class="field"><span class="label">Grand Total </span><span class="value amount" style="color:var(--accent);font-weight:600;">HK$ ${data.grandTotal.toFixed(2)}</span></div>`;
+  }
+  if (data.totalDiscount !== null && data.totalDiscount !== undefined && data.totalDiscount > 0) {
+    html += `<div class="field"><span class="label" style="color:var(--yellow);">Total Discount</span><span class="value amount" style="color:var(--yellow);">-HK$ ${data.totalDiscount.toFixed(2)}</span></div>`;
+  }
+  if (data.netAmount !== null && data.netAmount !== undefined) {
+    html += `<div class="field" style="background:rgba(0,212,170,0.08);border-radius:8px;padding:6px 8px;margin-top:4px;">
+      <span class="label" style="font-weight:700;">Net Total</span>
+      <span class="value amount" style="font-weight:700;">HK$ ${data.netAmount.toFixed(2)}</span>
+    </div>`;
   }
   if (data.balanceDue !== null && data.balanceDue !== undefined) {
     html += `<div class="field" style="background:rgba(0,212,170,0.08);border-radius:8px;padding:6px 8px;margin-top:4px;">
@@ -1919,10 +2806,15 @@ function displayParsedBill(data) {
     html += `<div style="margin-top:8px;font-weight:600;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">💰 Charges (${data.charges.length})</div>`;
     for (const ch of data.charges) {
       const catColor = ch.category === 'doctor_fee' ? '#a29bfe' : 'var(--accent)';
+      const displayAmount = ch.netAmount || ch.amount || 0;
       html += `<div class="field" style="padding-left:8px;border-left:2px solid ${catColor};margin-top:2px;">
         <span class="label" style="font-size:9px;">${ch.code || '•'}</span>
-        <span class="value" style="font-size:10px;">${ch.description} <span style="color:var(--text-muted);">· HK$ ${ch.amount.toFixed(2)}</span></span>
-      </div>`;
+        <span class="value" style="font-size:10px;">${ch.description}`;
+      if (ch.discount) {
+        html += ` <span style="color:var(--yellow);font-size:9px;">(-HK$ ${ch.discount.toFixed(2)})</span>`;
+      }
+      html += ` <span style="color:var(--text-muted);">· HK$ ${displayAmount.toFixed(2)}</span></span>`;
+      html += `</div>`;
     }
   }
   container.innerHTML = html;
@@ -2001,9 +2893,10 @@ async function askQuestion(question) {
   addChatMessage('user', question);
   document.getElementById('sendChatBtn').disabled = true;
   try {
-    const chargesSummary = (parsedBillData.charges || []).map(c => 
-      `- ${c.description}${c.code ? ' ('+c.code+')' : ''}: HK$ ${c.amount.toFixed(2)}`
-    ).join('\n');
+    const chargesSummary = (parsedBillData.charges || []).map(c => {
+      const netAmt = c.netAmount || c.amount || 0;
+      return `- ${c.description}${c.code ? ' ('+c.code+')' : ''}: HK$ ${netAmt.toFixed(2)}${c.discount ? ' (discount: HK$ '+c.discount.toFixed(2)+')' : ''}`;
+    }).join('\n');
     const context = `
 HOSPITAL: ${parsedBillData.hospital || 'Unknown'}
 PATIENT: ${parsedBillData.patientName || 'Unknown'}
@@ -2012,6 +2905,8 @@ ADMISSION: ${parsedBillData.admissionDate || 'Unknown'}
 DISCHARGE: ${parsedBillData.dischargeDate || 'Unknown'}
 DEPOSIT PAID: ${parsedBillData.depositPaid !== null ? 'HK$ '+parsedBillData.depositPaid.toFixed(2) : 'Unknown'}
 GRAND TOTAL: ${parsedBillData.grandTotal !== null ? 'HK$ '+parsedBillData.grandTotal.toFixed(2) : 'Unknown'}
+TOTAL DISCOUNT: ${parsedBillData.totalDiscount ? 'HK$ '+parsedBillData.totalDiscount.toFixed(2) : 'HK$ 0.00'}
+NET TOTAL: ${parsedBillData.netAmount !== null ? 'HK$ '+parsedBillData.netAmount.toFixed(2) : 'Unknown'}
 BALANCE DUE: ${parsedBillData.balanceDue !== null ? 'HK$ '+parsedBillData.balanceDue.toFixed(2) : 'Unknown'}
 
 CHARGES:
@@ -2040,7 +2935,11 @@ function checkReady() {
   const ip = document.getElementById('ip-text').value.trim();
   const policy = document.getElementById('policy-text').value.trim();
   const hasParsed = parsedBillData && parsedBillData.charges && parsedBillData.charges.length > 0;
-  document.getElementById('validate-btn').disabled = !(ip && policy && hasParsed);
+  const validateBtn = document.getElementById('validate-btn');
+  const processBtn = document.getElementById('processBtn');
+  
+  if (validateBtn) validateBtn.disabled = !(ip && policy && hasParsed);
+  if (processBtn) processBtn.disabled = !(ip && policy && hasParsed && validationResult);
 }
 function clearIP() {
   document.getElementById('ip-text').value = '';
@@ -2050,7 +2949,6 @@ function clearIP() {
   document.getElementById('bill-preview').style.display = 'none';
   document.getElementById('bill-drop-zone').style.display = 'block';
   document.getElementById('result-content').style.display = 'none';
-  document.getElementById('jsonPreview').style.display = 'none';
   document.getElementById('extractionWarning').style.display = 'none';
   document.getElementById('imagePreviewContainer').style.display = 'none';
   document.getElementById('imagePreview').innerHTML = '';
@@ -2060,14 +2958,12 @@ function clearIP() {
   document.getElementById('result-label').textContent = 'Awaiting validation';
   document.getElementById('result-metrics').textContent = '—';
   validationResult = null;
+  const processBtn = document.getElementById('processBtn');
+  if (processBtn) processBtn.disabled = true;
   const emptyResult = document.querySelector('.result-body .empty-result');
   if (emptyResult) emptyResult.style.display = 'block';
 }
-function clearAll() { clearIP(); document.getElementById('policy-text').value = ''; document.getElementById('selectedPolicyBadge').textContent = 'None'; document.getElementById('selectedPolicyBadge').classList.remove('has-content'); document.getElementById('selectedPoliciesDisplay').style.display = 'none'; document.getElementById('selectedPoliciesList').innerHTML = ''; document.getElementById('ip-file-input').value = ''; document.getElementById('pdf-file-input').value = ''; resetPipelineSteps(); showToast('Reset complete'); checkReady(); }
-function copyResult() {
-  const content = document.getElementById('result-content').innerText;
-  if (content) navigator.clipboard.writeText(content).then(() => showToast('Copied!'));
-}
+function clearAll() { clearIP(); document.getElementById('policy-text').value = ''; document.getElementById('policyDisplayArea').style.display = 'none'; document.getElementById('ip-file-input').value = ''; document.getElementById('pdf-file-input').value = ''; resetPipelineSteps(); window.combinedParsedPolicy = null; showToast('Reset complete'); checkReady(); }
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -2084,18 +2980,27 @@ function exportTXT() {
   txt += `Admission: ${d.admissionDate || 'N/A'}\nDischarge: ${d.dischargeDate || 'N/A'}\n`;
   txt += `Deposit Paid: ${d.depositPaid !== null ? 'HK$ '+d.depositPaid.toFixed(2) : 'N/A'}\n`;
   txt += `Grand Total: ${d.grandTotal !== null ? 'HK$ '+d.grandTotal.toFixed(2) : 'N/A'}\n`;
+  txt += `Total Discount: ${d.totalDiscount ? 'HK$ '+d.totalDiscount.toFixed(2) : 'HK$ 0.00'}\n`;
+  txt += `Net Total: ${d.netAmount !== null ? 'HK$ '+d.netAmount.toFixed(2) : 'N/A'}\n`;
   txt += `Balance Due: ${d.balanceDue !== null ? 'HK$ '+d.balanceDue.toFixed(2) : 'N/A'}\n\n`;
   txt += '----------------------------------------\nCHARGES\n----------------------------------------\n';
   if (d.charges) for (let i=0; i<d.charges.length; i++) {
     const c = d.charges[i];
-    txt += `${(i+1).toString().padStart(3)}. ${c.date||'N/A'} ${c.code||'N/A'} ${c.description} HK$ ${c.amount.toFixed(2)}\n`;
+    const netAmt = c.netAmount || c.amount || 0;
+    txt += `${(i+1).toString().padStart(3)}. ${c.date||'N/A'} ${c.code||'N/A'} ${c.description}`;
+    if (c.discount) txt += ` (discount: HK$ ${c.discount.toFixed(2)})`;
+    txt += ` HK$ ${netAmt.toFixed(2)}\n`;
   }
   txt += '\n========================================\n';
   if (validationResult) {
-    txt += `VALIDATION: ${validationResult.approved ? 'APPROVED ✅' : 'REJECTED ❌'}\n`;
-    txt += `Compliance: ${Math.round(validationResult.complianceRate)}%\n`;
-    if (!validationResult.approved && validationResult.reasons.length) {
-      txt += 'Reasons:\n' + validationResult.reasons.map(r => `- ${r}`).join('\n') + '\n';
+    txt += `Total Reimbursement: HK$ ${(validationResult.totalReimbursement || 0).toFixed(2)}\n`;
+    txt += `Approved: HK$ ${(validationResult.totalApproved || 0).toFixed(2)}\n`;
+    txt += `Rejected: HK$ ${(validationResult.totalRejected || 0).toFixed(2)}\n`;
+    if (validationResult.totalWarning) {
+      txt += `Needs Review: HK$ ${(validationResult.totalWarning || 0).toFixed(2)}\n`;
+    }
+    if (validationResult.issues && validationResult.issues.length) {
+      txt += 'Issues:\n' + validationResult.issues.map(r => `- ${r}`).join('\n') + '\n';
     }
   }
   txt += '========================================\n';
@@ -2105,19 +3010,14 @@ function exportTXT() {
 
 function exportJSON() {
   if (!parsedBillData) { showToast('⚠️ Parse a bill first.'); return; }
-  const out = { ...parsedBillData, validation: validationResult };
+  const out = { 
+    bill: parsedBillData, 
+    validation: validationResult,
+    policyData: window.combinedParsedPolicy || null
+  };
   const json = JSON.stringify(out, null, 2);
   downloadFile(json, 'bill_data.json', 'application/json');
   showToast('✅ JSON exported!');
-  document.getElementById('jsonPreview').textContent = json;
-  document.getElementById('jsonPreview').style.display = 'block';
-}
-
-function toggleJSONPreview() {
-  const preview = document.getElementById('jsonPreview');
-  if (preview.style.display === 'block') { preview.style.display = 'none'; }
-  else if (parsedBillData) { preview.textContent = JSON.stringify({ ...parsedBillData, validation: validationResult }, null, 2); preview.style.display = 'block'; }
-  else showToast('⚠️ Parse a bill first.');
 }
 
 function downloadFile(content, filename, mimeType) {
@@ -2155,21 +3055,17 @@ function onBillDrop(e) {
 
 // ─── INIT ─────────────────────────────────────────────────────
 document.getElementById('ip-text').addEventListener('input', () => { updateCounts(); updateBadges(); checkReady(); });
-document.getElementById('policy-text').addEventListener('input', () => checkReady());
 document.getElementById('sendChatBtn').addEventListener('click', () => { const msg = document.getElementById('chatInput').value.trim(); if (msg) { askQuestion(msg); document.getElementById('chatInput').value = ''; } });
 document.getElementById('chatInput').addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('sendChatBtn').click(); } });
 
-// Expose globals
 window.loadIPFile = loadIPFile; window.loadPDFFile = loadPDFFile; window.loadPolicyPDF = loadPolicyPDF;
 window.onBillDragOver = onBillDragOver; window.onBillDragLeave = onBillDragLeave; window.onBillDrop = onBillDrop;
 window.runFullPipeline = runFullPipeline; window.runVLMOnly = runVLMOnly; window.validate = validate;
-window.clearIP = clearIP; window.clearAll = clearAll; window.copyResult = copyResult;
-window.askQuestion = askQuestion; window.clearChat = clearChat;
-window.exportTXT = exportTXT; window.exportJSON = exportJSON; window.toggleJSONPreview = toggleJSONPreview;
-window.viewExtractedText = viewExtractedText;
-window.testApiKey = testApiKey;
+window.processAndSaveClaim = processAndSaveClaim;
+window.refreshHistory = refreshHistory;
+window.clearIP = clearIP; window.clearAll = clearAll; window.askQuestion = askQuestion; window.clearChat = clearChat;
+window.exportTXT = exportTXT; window.exportJSON = exportJSON; window.testApiKey = testApiKey;
 
-// ─── START ──────────────────────────────────────────────────
 initAuth();
 </script>
 </body>
